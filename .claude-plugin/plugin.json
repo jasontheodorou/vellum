@@ -1,0 +1,14 @@
+{
+  "name": "terminal-scribe",
+  "displayName": "Terminal Scribe",
+  "version": "1.0.0",
+  "description": "Keeps a plain-English journal of every Claude Code session in a project, so Claude remembers where you left off and what you decided.",
+  "author": {
+    "name": "Jason Theodorou",
+    "url": "https://github.com/jasontheodorou"
+  },
+  "homepage": "https://github.com/jasontheodorou/terminal-scribe",
+  "repository": "https://github.com/jasontheodorou/terminal-scribe",
+  "license": "MIT",
+  "keywords": ["journal", "memory", "notes", "decisions", "history", "handoff"]
+}

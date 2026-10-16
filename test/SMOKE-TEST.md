@@ -1,36 +1,37 @@
-# scribe Manual Smoke Test
+# Manual test
 
-Run on a Mac (and once on Linux if available). This is the test plan from the design spec, executed by hand.
+The automated tests use a fake `claude`. This checklist tests the plugin with real Claude Code. Run it on a Mac before each release, and on Linux when you can.
 
-## Prerequisites
-- A clean home directory (or a test machine).
-- Claude Code installed and on PATH.
-- A test project: `mkdir -p /tmp/scribe-smoke && cd /tmp/scribe-smoke`.
+## Before you start
+
+- Claude Code 2.1.275 or later.
+- No other copy of Terminal Scribe installed. If an old curl install is present, step 2 covers it.
+- A throwaway project: `mkdir -p /tmp/scribe-smoke && cd /tmp/scribe-smoke && git init`.
 
 ## Steps
 
-1. **Install.** Run `bash ~/projects/scribe/dist/scribe-installer.sh`. Confirm friendly output and no prompts.
-2. **doctor.** Run `~/.scribe/bin/scribe doctor`. Should report all green.
-3. **Bootstrap prompt.** `cd /tmp/scribe-smoke; claude`. Within Claude's first response, it should ask about enabling journaling.
-4. **Yes path.** Answer "yes". Confirm `journal/`, `.gitignore` line, and `CLAUDE.md` block all appear. Claude acknowledges.
-5. **Live writing.** Have a real session — discuss a small architectural choice. Close the session. Open `journal/logbook/<today>.md`. Confirm it has prose. Open `journal/decisions/001-*.md` if a decision was made.
-6. **Re-open.** `claude` again in the same project. Confirm the SessionStart context contains the latest log entry and lessons.
-7. **Pause.** Tell Claude "pause journaling". Confirm `journal/.paused` exists. Do work; close. Confirm no new entries appeared.
-8. **Resume.** Tell Claude "resume journaling". Confirm sentinel removed.
-9. **Read on behalf.** Ask Claude "what did we decide?" Confirm Claude reads `decisions/` and replies in chat.
-10. **Archive.** Tell Claude "archive this project". Confirm a `<project>_archive.md` appears on the desktop. Open it; confirm sections look right.
-11. **Library.** Confirm an identical copy lands in `~/.scribe/library/`.
-12. **Cross-project recall.** Make a second project, `scribe init`, ask Claude "have we made decisions about X before?" where X is in the archived project. Confirm Claude finds the excerpt.
-13. **Link.** In the second project, tell Claude "use <first-project> as background context". Confirm `journal/.imports.txt` updated. Re-open the session and confirm imported summary + lessons appear in SessionStart context.
-14. **Off.** Tell Claude "turn off journaling here" in one project. Answer the confirmation. Confirm the journal directory and CLAUDE.md block are gone.
-15. **Decline path.** Make a fresh project. Answer "no" to the consent prompt. Confirm `.scribe-declined` is created. Re-open Claude; confirm no consent prompt re-fires.
-16. **Not-now path.** Make a fresh project. Answer "not now". Confirm no marker; the prompt re-fires next session.
-17. **Uninstall.** `bash ~/.scribe/uninstall.sh`. Confirm settings cleaned, slash commands removed, PATH line removed, library prompt defaulted to No.
-18. **Re-install after uninstall.** Run installer again. Confirm clean re-install.
-19. **Restricted-environment dry-run.** Disconnect network *after* downloading installer. Run install. Confirm success.
+1. **Install.** In Claude Code, run `/plugin install terminal-scribe --marketplace jasontheodorou/terminal-scribe`. For an unreleased copy, start Claude with `claude --plugin-dir /path/to/terminal-scribe` instead.
+2. **Old install.** On a machine with the old curl version, Claude should mention it in its first reply. Say yes. Check that `~/.claude/settings.json` no longer mentions `.scribe/hooks/` and `~/.scribe/library/` is still there.
+3. **Asked once.** In `/tmp/scribe-smoke`, start Claude. Its first reply asks whether to keep a journal.
+4. **Yes.** Answer yes. Check that `.scribe/` exists, `git status` is clean, and there is no `CLAUDE.md` or `.gitignore`.
+5. **Writing as you go.** Discuss a small decision. Check `.scribe/logbook/<today>.md`, and `.scribe/decisions/001-*.md` if a decision was made.
+6. **Background helper.** Quit Claude. Within a minute or two, `.scribe/.state/helper.log` appears and the logbook covers the whole session.
+7. **Coming back.** Start Claude again. Ask "where did we get to?". It answers from the journal without opening files you name.
+8. **Pause.** Say "pause journaling". Check `.scribe/.paused` exists. Work a little and quit. Nothing new is written, and the helper does not run.
+9. **Resume.** Say "resume journaling". Check `.scribe/.paused` is gone.
+10. **Slash commands.** Run `/terminal-scribe:status`. It reports the state in plain English.
+11. **Helper off.** Say "stop the Terminal Scribe background helper". Quit. The helper does not run. Turn it back on.
+12. **Archive.** Say "archive this project". `scribe-smoke_archive.md` appears on the desktop with a real summary, and a copy is in `~/.scribe/library/`.
+13. **Past projects.** In a second throwaway project, turn journaling on and ask "have we made decisions about X before?", where X is in the first project. Claude finds it.
+14. **Link.** Say "bring in what we learned on scribe-smoke". Start a new session and check that its summary and lessons are in context.
+15. **No.** In a third project, answer no. Check `~/.scribe/declined` lists it. Start Claude again: it does not ask.
+16. **Not now.** In a fourth project, answer "not now". Start Claude again: it asks again.
+17. **Old journal.** Make a project with a `journal/` folder and a `CLAUDE.md` containing `<!-- scribe-block-begin -->` and `<!-- scribe-block-end -->`. Claude offers to migrate. Say yes and check the result.
+18. **Turn off.** Say "turn off journaling here". Claude asks you to confirm. Confirm, and check `.scribe/` is gone.
+19. **Uninstall.** Run `/plugin uninstall terminal-scribe`. New sessions say nothing about Terminal Scribe. Journals and the library are untouched.
 
-Record results in this file as you go.
+## Results
 
-## Status
-
-Not yet run by a human. The automated test suite (77 bats tests) covers the underlying mechanics; this list verifies the end-to-end user experience.
+| Date | Version | System | Result | Notes |
+| --- | --- | --- | --- | --- |
+| 2026-10-16 | 1.0.0 (unreleased) | macOS 26, Claude Code 2.1.301 | Partial pass | Steps 2 (detection only), 3, 4, 6 and 12 run with `--plugin-dir` in headless mode. The helper could not write outside `.scribe/`, change README.md or run commands. |

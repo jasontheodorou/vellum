@@ -1,78 +1,88 @@
 # Terminal Scribe
 
-![scribe](https://github.com/jasontheodorou/terminal-scribe/blob/main/scribe_logo_001.png)
+![Terminal Scribe](scribe_logo_001.png)
 
-**A quiet co-author that keeps a record of your project as it unfolds.**
+Terminal Scribe is a plugin for [Claude Code](https://claude.com/claude-code). It keeps a plain-English journal of your project as you work, so Claude remembers what you decided, what you tried and where you left off.
 
-When you work with Claude in the terminal, you're making decisions, trying things, changing your mind, learning lessons. Most of that disappears the moment a session ends. Terminal Scribe writes it all down for you — in plain English, automatically — so it's there whenever you need it.
+## Why use it
 
-## Why you'd want this
-
-**A living history of your project, with no effort.** Every Claude Code session leaves behind a journal entry: what you talked about, what you decided, what you tried. You don't have to remember to take notes. You don't have to summarise anything. It just happens.
-
-**Continuity across sessions.** Pick up a project a week later and Claude already knows where you left off — because the journal is read at the start of every session. No more "remind me where we got to?" No more pasting in old screenshots or chat logs.
-
-**A clean handoff when you're done.** When a project wraps up, just say *"archive this project"* and Claude saves a single tidy document to your desktop. The project summary, the key decisions, the lessons learned — all in one place. Email it to a stakeholder, save it for your portfolio, hand it to whoever takes over.
-
-**Lessons that travel with you.** Every project you archive joins your personal library. Next time you start something new, you can ask *"have I run into this before?"* and Claude will pull the relevant wisdom from a past project. Your hard-won insights stop dying with each piece of work.
-
-**Total privacy by default.** Your journal lives on your computer, not in the cloud. It's hidden from any team git repository so it never accidentally gets shared. You stay in control of what's recorded and what isn't.
-
-**You can pause it anytime.** If you're about to discuss something sensitive, just tell Claude *"pause journaling"*. Resume when you're ready. The choice is always yours.
-
-## How it works
-
-Once installed, every Claude Code session quietly contributes to a journal folder in your project. **You don't run any commands. Claude does the writing.** You can pause it, resume it, look things up in it, or turn it off any time — just by talking to Claude in plain English.
+- **No note-taking.** Every session adds to the journal: what you talked about, what you decided and what you tried. You do not have to write anything.
+- **Pick up where you left off.** Claude reads the journal at the start of every session, so you never have to explain where you got to.
+- **A clean handoff.** Say "archive this project" and Claude saves one tidy document to your desktop, with the summary, the decisions and the lessons.
+- **Lessons that carry over.** Archived projects go into a library on your computer. On a new project, ask "have we faced this before?" and Claude searches it.
+- **Private by default.** The journal stays on your computer. It is kept out of git, so it is never committed or shared by accident.
+- **You are in control.** Say "pause journaling" before a sensitive conversation, and "resume journaling" afterwards.
 
 ## Install
 
-Open Terminal and paste this:
+You need Claude Code 2.1.275 or later. In Claude Code, type:
 
-```bash
-curl -fsSL https://github.com/jasontheodorou/terminal-scribe/releases/latest/download/scribe-installer.sh | bash
+```
+/plugin install terminal-scribe --marketplace jasontheodorou/terminal-scribe
 ```
 
-Then open Claude Code in any project, as you normally would. Claude will ask once whether you'd like Terminal Scribe to keep a journal for that project. Say yes.
+On older versions, type these two lines instead:
 
-That's the whole setup. You won't need to think about it again.
+```
+/plugin marketplace add jasontheodorou/terminal-scribe
+/plugin install terminal-scribe@terminal-scribe
+```
 
-## How to use it
+Then open Claude Code in a project folder. Claude asks once whether to keep a journal for that project. Say yes.
 
-You don't, really — that's the point. Keep working with Claude exactly as you do now.
+## Using it
 
-When you want to interact with Terminal Scribe, just say so in plain English. A few things you can ask:
+Keep working as you normally do. When you want something from the journal, ask in plain English:
 
-- *"What did we decide about the navigation last week?"* — Claude reads your journal and tells you.
-- *"Summarise what we've done on this project."* — Claude writes you a recap from the journal.
-- *"Pause journaling for now."* — Claude stops writing until you say resume.
-- *"Resume journaling."* — Back on.
-- *"Archive this project."* — Claude saves a clean summary document to your desktop.
-- *"Have we faced this kind of problem before?"* — Claude looks across all your archived past projects and surfaces what's relevant.
-- *"Turn off Terminal Scribe in this project."* — Claude removes it from the current project (the rest of your projects stay as they are).
+- "What did we decide about the navigation last week?"
+- "Summarise what we have done on this project."
+- "Pause journaling." and "Resume journaling."
+- "Archive this project."
+- "Have we faced this kind of problem before?"
+- "Bring in what we learned on the website project."
+- "Turn off journaling here." This deletes the journal, so Claude asks you to confirm.
 
-No commands to memorise, no menus to navigate. Just talk.
+There are also slash commands: `/terminal-scribe:status`, `/terminal-scribe:pause`, `/terminal-scribe:resume`, `/terminal-scribe:archive`, `/terminal-scribe:enable` and `/terminal-scribe:off`.
+
+## What it costs
+
+Claude writes most of the journal during your session, which costs very little.
+
+When a session ends, a background helper runs Claude once more to fill in anything that was missed. That uses some of your plan's allowance or your API credit. To turn it off, tell Claude "stop the Terminal Scribe background helper".
+
+To save money, tell Claude "use Haiku for Terminal Scribe". The helper and archive summaries then use that cheaper model.
+
+## Where things are kept
+
+| What | Where |
+| --- | --- |
+| A project's journal | `.scribe/` in the project folder |
+| Archived projects | `~/.scribe/library/` |
+| Settings | `~/.scribe/config` |
+| An archive you asked for | Your desktop |
+
+[PRIVACY.md](PRIVACY.md) explains what is recorded, what the background helper can and cannot do, and how to delete everything.
+
+## Upgrading from the curl installer
+
+Versions before 1.0 were installed by pasting a `curl` command into Terminal. After you install the plugin, Claude notices the old version and offers to remove it. Your archived projects are kept. You can also ask Claude to "remove the old Terminal Scribe install".
+
+Projects that already have a `journal/` folder can be moved to the new layout. Claude offers this when you open the project, or you can ask Claude to "migrate this project's journal". It moves the journal to `.scribe/` and removes the Terminal Scribe section from `CLAUDE.md` and the `journal/` line from `.gitignore`.
 
 ## Uninstall
 
-If you change your mind, open Terminal and paste this:
+In Claude Code, type `/plugin uninstall terminal-scribe`.
 
-```
-bash ~/.scribe/uninstall.sh
-```
+That stops all journaling. It does not delete your journals or your library, because they are your work. To delete them as well, remove each project's `.scribe/` folder and the `~/.scribe/` folder.
 
-It'll ask whether you want to keep your library of past-project summaries (defaults to yes). Then it's gone.
+## Works on
 
-## What you need
+macOS, Linux and Windows through WSL. It needs bash, which these systems already have. It uses `jq` or `python3` if they are installed, but does not need them.
 
-- A Mac, or a Linux laptop.
-- [Claude Code](https://claude.com/claude-code) — the terminal app from Anthropic. If you don't have it yet, that link will sort you out.
+## Contributing
 
-That's it. No accounts to create, no subscriptions, no API keys. Terminal Scribe runs entirely on your own machine.
+Bug reports and improvements are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) explains how to run the tests. Report security problems as [SECURITY.md](SECURITY.md) describes, not in a public issue.
 
-## Made for design teams
+## Licence
 
-Terminal Scribe is built to match the way design work actually unfolds — messy, iterative, full of half-formed ideas that turn out to matter later. It captures the *why* behind your decisions, not just the *what*, so the trail you leave is one you can actually follow.
-
----
-
-Terminal Scribe is built to stay out of your way.
+[MIT](LICENSE). Copyright 2026 Jason Theodorou.

@@ -1,0 +1,15 @@
+{
+  "name": "terminal-scribe",
+  "owner": {
+    "name": "Jason Theodorou",
+    "url": "https://github.com/jasontheodorou"
+  },
+  "description": "Terminal Scribe, a plugin that keeps a plain-English journal of your Claude Code projects.",
+  "plugins": [
+    {
+      "name": "terminal-scribe",
+      "source": "./",
+      "description": "Keeps a plain-English journal of every Claude Code session in a project, so Claude remembers where you left off and what you decided."
+    }
+  ]
+}

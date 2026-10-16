@@ -5,104 +5,92 @@ load helpers
 setup() {
   setup_isolated_env
   install_fake_claude
-  # Override desktop to a known fixture path so we can assert on it.
-  mkdir -p "$TEST_HOME/Desktop"
-
-  "$SCRIBE_BIN" init
-
-  # Seed some content.
-  cat >"$PROJECT_DIR/journal/logbook/2026-04-30.md" <<EOF
+  mkdir -p "$HOME/Desktop"
+  "$SCRIBE_BIN" init >/dev/null
+  J="$PROJECT_DIR/.scribe"
+  cat >"$J/logbook/2026-04-30.md" <<EOF2
 ---
 id: log-2026-04-30
 type: logbook
-date: 2026-04-30
 ---
 # 2026-04-30
 First session content.
-EOF
-
-  cat >"$PROJECT_DIR/journal/decisions/001-foo.md" <<EOF
+EOF2
+  cat >"$J/decisions/001-foo.md" <<EOF2
 ---
 id: decision-001-foo
 type: decision
 ---
-# 001 — Pick foo
+# 001 Pick foo
 Decided to pick foo.
-EOF
-
-  # Configure fake claude to write a fake summary into a known temp file.
-  cat >"$TEST_HOME/fakebin/claude" <<'FAKE'
-#!/bin/bash
-# Read prompt from stdin so the test can inspect it.
-cat > "$TEST_HOME/claude.stdin"
-# Write the simulated summary to the path the prompt requests.
-# The archive command tells us via env where the summary tempfile is.
-if [ -n "${SCRIBE_FAKE_SUMMARY_PATH:-}" ]; then
-  printf '%s\n' "Fake one-screen summary of the project. ~300 words placeholder." > "$SCRIBE_FAKE_SUMMARY_PATH"
-fi
-exit 0
-FAKE
-  chmod +x "$TEST_HOME/fakebin/claude"
+EOF2
+  echo "- Always measure first." >> "$J/lessons.md"
+  ARCHIVE="$HOME/Desktop/test-project_archive.md"
 }
-
 teardown() { teardown_isolated_env; }
 
-@test "scribe archive refuses when journal/ is empty" {
-  rm -rf "$PROJECT_DIR/journal"
+@test "archive refuses an empty journal" {
+  rm -f "$J"/logbook/*.md "$J"/decisions/*.md "$J/lessons.md"
   run "$SCRIBE_BIN" archive
   [ "$status" -ne 0 ]
   [[ "$output" == *"nothing to archive"* ]]
 }
 
-@test "scribe archive writes to desktop and library" {
+@test "archive writes to the desktop and the library" {
   run "$SCRIBE_BIN" archive
   [ "$status" -eq 0 ]
-  local desktop="$HOME/Desktop"
-  local proj="$(basename "$PROJECT_DIR")"
-  [ -f "$desktop/${proj}_archive.md" ]
-  [ -f "$HOME/.scribe/library/${proj}_archive.md" ]
+  [ -f "$ARCHIVE" ]
+  cmp "$ARCHIVE" "$HOME/.scribe/library/test-project_archive.md"
 }
 
-@test "scribe archive output contains required sections" {
+@test "archive has every section and the summary from Claude" {
   "$SCRIBE_BIN" archive
-  local desktop="$HOME/Desktop"
-  local proj="$(basename "$PROJECT_DIR")"
-  local f="$desktop/${proj}_archive.md"
-
-  grep -q "^## Summary" "$f"
-  grep -q "^## Lessons learned" "$f"
-  grep -q "^## Decisions" "$f"
-  grep -q "001 — Pick foo" "$f"
+  grep -q "^## Summary" "$ARCHIVE"
+  grep -q "Fake summary of the project." "$ARCHIVE"
+  grep -q "^## Lessons learned" "$ARCHIVE"
+  grep -q "Always measure first." "$ARCHIVE"
+  grep -q "^## Decisions" "$ARCHIVE"
+  grep -q "^## Recent activity" "$ARCHIVE"
+  grep -q "^sessions: 1" "$ARCHIVE"
 }
 
-@test "scribe archive frontmatter has project + archived date" {
+@test "archive turns entry headings into third-level headings" {
   "$SCRIBE_BIN" archive
-  local desktop="$HOME/Desktop"
-  local proj="$(basename "$PROJECT_DIR")"
-  local f="$desktop/${proj}_archive.md"
-
-  grep -q "^project:" "$f"
-  grep -q "^archived: $(date '+%Y-%m-%d')" "$f"
+  grep -q "^### 001 Pick foo" "$ARCHIVE"
+  grep -q "^### 2026-04-30" "$ARCHIVE"
+  [ "$(grep -c '^# ' "$ARCHIVE")" -eq 1 ]
 }
 
-@test "scribe archive is idempotent (rerun refreshes both copies)" {
+@test "archive strips frontmatter from entries" {
   "$SCRIBE_BIN" archive
-  local desktop="$HOME/Desktop"
-  local proj="$(basename "$PROJECT_DIR")"
-  local first_size
-  first_size=$(wc -c < "$desktop/${proj}_archive.md")
+  refute grep -q "^id: decision-001-foo" "$ARCHIVE"
+}
 
-  # Add new content, rerun.
-  cat >"$PROJECT_DIR/journal/decisions/002-bar.md" <<EOF
----
-id: decision-002-bar
-type: decision
----
-# 002 — Pick bar
-EOF
+@test "archive gives Claude read-only tools and marks it as a helper" {
   "$SCRIBE_BIN" archive
-  local second_size
-  second_size=$(wc -c < "$desktop/${proj}_archive.md")
-  [ "$second_size" -gt "$first_size" ]
-  grep -q "002 — Pick bar" "$desktop/${proj}_archive.md"
+  grep -qx "Read,Glob,Grep" "$TEST_HOME/claude.args"
+  grep -qx "dontAsk" "$TEST_HOME/claude.args"
+  refute grep -q "bypassPermissions" "$TEST_HOME/claude.args"
+  grep -qx "SCRIBE_SUBAGENT=1" "$TEST_HOME/claude.env"
+}
+
+@test "archive passes the chosen model" {
+  "$SCRIBE_BIN" config model haiku
+  "$SCRIBE_BIN" archive
+  grep -qx -- "--model" "$TEST_HOME/claude.args"
+  grep -qx "haiku" "$TEST_HOME/claude.args"
+}
+
+@test "archive still works without claude" {
+  rm -f "$FAKEBIN/claude"
+  run "$SCRIBE_BIN" archive
+  [ "$status" -eq 0 ]
+  grep -q "automatic summary was not available" "$ARCHIVE"
+}
+
+@test "archive handles file names with spaces" {
+  echo "# Spaced" > "$J/decisions/002 with space.md"
+  run "$SCRIBE_BIN" archive
+  [ "$status" -eq 0 ]
+  grep -q "^### Spaced" "$ARCHIVE"
 }

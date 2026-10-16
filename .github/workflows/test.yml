@@ -1,0 +1,41 @@
+name: Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install bats and ShellCheck
+        run: |
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            brew install bats-core shellcheck
+          else
+            sudo apt-get update
+            sudo apt-get install -y bats shellcheck
+          fi
+
+      - name: ShellCheck
+        run: shellcheck -S warning bin/scribe test/helpers.bash
+
+      - name: Tests
+        run: bats test/
+
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate the plugin
+        run: npx -y @anthropic-ai/claude-code plugin validate . --strict

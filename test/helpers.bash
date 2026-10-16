@@ -1,80 +1,78 @@
 #!/usr/bin/env bash
-# Shared test helpers. Each test gets an isolated fake $HOME at $TEST_HOME so
-# we never touch the real ~/.scribe or ~/.claude during tests.
+# Shared test helpers. Each test runs in a throwaway $HOME, so the real
+# ~/.scribe and ~/.claude are never touched.
 
-# Path to the source tree (set per repo root, computed once).
 SCRIBE_REPO="${SCRIBE_REPO:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+SCRIBE_BIN="$SCRIBE_REPO/bin/scribe"
 
-# Set up an isolated environment for one test. Call from setup() in a .bats file.
 setup_isolated_env() {
   TEST_HOME="$(cd "$(mktemp -d "${TMPDIR:-/tmp}/scribe-test.XXXXXX")" && pwd)"
-  export HOME="$TEST_HOME"
-  export TEST_HOME
+  export HOME="$TEST_HOME" TEST_HOME
+  unset SCRIBE_HOME SCRIBE_SUBAGENT CLAUDE_JOURNAL_HOOK CLAUDE_PROJECT_DIR
+  export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
 
-  # Project-under-test root (a fake project directory inside TEST_HOME).
   PROJECT_DIR="$TEST_HOME/test-project"
   mkdir -p "$PROJECT_DIR"
-  export PROJECT_DIR
+  export PROJECT_DIR SCRIBE_BIN
 
-  # Path to the scribe binary we're testing (source-tree copy).
-  SCRIBE_BIN="$SCRIBE_REPO/src/bin/scribe"
-  [ -f "$SCRIBE_BIN" ] && chmod +x "$SCRIBE_BIN" || true
-  export SCRIBE_BIN
-
-  # Templates path — the scribe CLI normally reads from ~/.scribe/templates,
-  # but for source-tree tests we point it at src/templates/ via env.
-  export SCRIBE_TEMPLATES_DIR="$SCRIBE_REPO/src/templates"
-
-  # Library path inside the isolated home.
-  export SCRIBE_LIBRARY_DIR="$TEST_HOME/.scribe/library"
-  mkdir -p "$SCRIBE_LIBRARY_DIR"
-
-  cd "$PROJECT_DIR"
+  # Keep the real claude off PATH unless a test installs the fake one.
+  FAKEBIN="$TEST_HOME/fakebin"
+  mkdir -p "$FAKEBIN"
+  export PATH="$FAKEBIN:/usr/bin:/bin:/usr/sbin:/sbin"
+  cd "$PROJECT_DIR" || return 1
 }
 
-# Tear down the isolated environment.
 teardown_isolated_env() {
   if [ -n "${TEST_HOME:-}" ] && [ -d "$TEST_HOME" ]; then
     rm -rf "$TEST_HOME"
   fi
 }
 
-# Install a fake `claude` CLI on PATH that captures invocations to a log.
+make_git_repo() {
+  git -C "$PROJECT_DIR" init -q
+}
+
+# A fake `claude` that records its arguments and stdin, and prints a summary.
 install_fake_claude() {
-  local fakedir="$TEST_HOME/fakebin"
-  mkdir -p "$fakedir"
-  cat >"$fakedir/claude" <<'FAKE'
+  cat >"$FAKEBIN/claude" <<'FAKE'
 #!/bin/bash
-echo "$@" >> "$TEST_HOME/claude.calls"
-cat >> "$TEST_HOME/claude.stdin" 2>/dev/null || true
-exit 0
+printf '%s\n' "$@" >> "$TEST_HOME/claude.args"
+cat >> "$TEST_HOME/claude.stdin"
+echo "SCRIBE_SUBAGENT=${SCRIBE_SUBAGENT:-}" >> "$TEST_HOME/claude.env"
+echo "Fake summary of the project."
 FAKE
-  chmod +x "$fakedir/claude"
-  export PATH="$fakedir:$PATH"
+  chmod +x "$FAKEBIN/claude"
 }
 
-# Install a fake `xdg-user-dir` that returns a configured path.
 install_fake_xdg() {
-  local fakedir="$TEST_HOME/fakebin"
-  mkdir -p "$fakedir"
-  cat >"$fakedir/xdg-user-dir" <<'FAKE'
+  cat >"$FAKEBIN/xdg-user-dir" <<'FAKE'
 #!/bin/bash
-echo "$1"
+echo "$TEST_HOME/xdg-desktop"
 FAKE
-  chmod +x "$fakedir/xdg-user-dir"
-  export PATH="$fakedir:$PATH"
+  chmod +x "$FAKEBIN/xdg-user-dir"
+  mkdir -p "$TEST_HOME/xdg-desktop"
 }
 
-# Make the journal/ directory inside PROJECT_DIR with seeds (no CLAUDE.md edit).
-seed_journal() {
-  mkdir -p "$PROJECT_DIR/journal/logbook" "$PROJECT_DIR/journal/decisions" "$PROJECT_DIR/journal/experiments"
-  touch "$PROJECT_DIR/journal/logbook/.keep" "$PROJECT_DIR/journal/decisions/.keep" "$PROJECT_DIR/journal/experiments/.keep"
-  cat >"$PROJECT_DIR/journal/lessons.md" <<EOF
----
-id: lessons
-type: manual
----
+# Wait up to two seconds for a file to appear (the session-end helper runs in the background).
+wait_for_file() {
+  local _
+  for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+    [ -f "$1" ] && return 0
+    sleep 0.1
+  done
+  return 1
+}
 
-# Lessons
-EOF
+hook_input() {
+  printf '{"session_id":"%s","transcript_path":"%s","cwd":"%s","hook_event_name":"%s"}' \
+    "${3:-sess-1}" "$2" "$PROJECT_DIR" "$1"
+}
+
+# Fails when the command succeeds. Bats ignores a bare `! cmd` that is not the
+# last line of a test, so use this instead.
+refute() {
+  if "$@"; then
+    echo "expected this to fail: $*" >&2
+    return 1
+  fi
 }

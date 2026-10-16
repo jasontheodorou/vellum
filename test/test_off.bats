@@ -2,39 +2,30 @@
 
 load helpers
 
-setup() {
-  setup_isolated_env
-  "$SCRIBE_BIN" init
-}
+setup() { setup_isolated_env; make_git_repo; "$SCRIBE_BIN" init >/dev/null; }
 teardown() { teardown_isolated_env; }
 
-@test "scribe off --yes removes journal/ and CLAUDE.md block" {
-  echo "Other content" > "$PROJECT_DIR/CLAUDE.md.bak"
-  cat "$PROJECT_DIR/CLAUDE.md.bak" "$PROJECT_DIR/CLAUDE.md" > "$PROJECT_DIR/CLAUDE.md.new"
-  mv "$PROJECT_DIR/CLAUDE.md.new" "$PROJECT_DIR/CLAUDE.md"
-
+@test "off --yes deletes the journal and the exclude line" {
   run "$SCRIBE_BIN" off --yes
   [ "$status" -eq 0 ]
-  [ ! -d "$PROJECT_DIR/journal" ]
-  ! grep -q "scribe-block-begin" "$PROJECT_DIR/CLAUDE.md"
-  grep -q "Other content" "$PROJECT_DIR/CLAUDE.md"
+  [ ! -d "$PROJECT_DIR/.scribe" ]
+  refute grep -qx "/.scribe/" "$PROJECT_DIR/.git/info/exclude"
 }
 
-@test "scribe off --yes removes .scribe-declined too" {
-  touch "$PROJECT_DIR/.scribe-declined"
-  run "$SCRIBE_BIN" off --yes
-  [ ! -f "$PROJECT_DIR/.scribe-declined" ]
+@test "off keeps other exclude lines" {
+  echo "*.local" >> "$PROJECT_DIR/.git/info/exclude"
+  "$SCRIBE_BIN" off --yes
+  grep -qx "\*.local" "$PROJECT_DIR/.git/info/exclude"
 }
 
-@test "scribe off without --yes prompts and aborts on no input" {
-  run bash -c "echo 'n' | '$SCRIBE_BIN' off"
+@test "off without --yes stops on no" {
+  run bash -c "echo n | '$SCRIBE_BIN' off"
   [ "$status" -ne 0 ]
-  [ -d "$PROJECT_DIR/journal" ]
+  [ -d "$PROJECT_DIR/.scribe" ]
 }
 
-@test "scribe off removes journal/ line from .gitignore" {
-  run "$SCRIBE_BIN" off --yes
-  if [ -f "$PROJECT_DIR/.gitignore" ]; then
-    ! grep -q "^journal/$" "$PROJECT_DIR/.gitignore"
-  fi
+@test "off without --yes goes ahead on yes" {
+  run bash -c "echo y | '$SCRIBE_BIN' off"
+  [ "$status" -eq 0 ]
+  [ ! -d "$PROJECT_DIR/.scribe" ]
 }

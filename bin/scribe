@@ -1,0 +1,865 @@
+#!/bin/bash
+# scribe: the Terminal Scribe helper for Claude Code.
+#
+# Claude runs these commands on the user's behalf, and the plugin's hooks call
+# `scribe hook ...`. The plugin puts this bin/ directory on the Bash tool's PATH.
+# Written for bash 3.2+ so it runs on a stock Mac.
+
+set -u
+
+# Where this script and the plugin live.
+SCRIBE_BIN_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+PLUGIN_ROOT="$(cd "$(dirname "$SCRIBE_BIN_PATH")/.." && pwd)"
+TEMPLATES="$PLUGIN_ROOT/templates"
+
+# Per-user data that must outlive plugin updates and uninstalls.
+SCRIBE_HOME="${SCRIBE_HOME:-$HOME/.scribe}"
+LIBRARY="$SCRIBE_HOME/library"
+CONFIG="$SCRIBE_HOME/config"
+DECLINED="$SCRIBE_HOME/declined"
+GLOBAL_LOG="$SCRIBE_HOME/scribe.log"
+
+# The per-project journal folder name.
+JOURNAL_NAME=".scribe"
+
+# Set while a background helper runs, so its own session does not start another.
+# CLAUDE_JOURNAL_HOOK is the name the pre-plugin version used.
+is_helper_session() {
+  [ "${SCRIBE_SUBAGENT:-0}" = "1" ] || [ "${CLAUDE_JOURNAL_HOOK:-0}" = "1" ]
+}
+
+# ---------------------------------------------------------------------------
+# Small helpers
+# ---------------------------------------------------------------------------
+
+log() {
+  mkdir -p "$SCRIBE_HOME" 2>/dev/null || return 0
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >>"$GLOBAL_LOG" 2>/dev/null || true
+}
+
+die() { echo "scribe: $*" >&2; exit 1; }
+
+plugin_version() {
+  sed -n 's/^[[:space:]]*"version":[[:space:]]*"\([^"]*\)".*/\1/p' \
+    "$PLUGIN_ROOT/.claude-plugin/plugin.json" 2>/dev/null | head -1
+}
+
+# Read a top-level string field from a JSON object. Uses jq when present,
+# otherwise a simple pattern that is enough for the flat hook payloads.
+json_field() {
+  local json="$1" key="$2"
+  if command -v jq >/dev/null 2>&1; then
+    printf '%s' "$json" | jq -r --arg k "$key" '.[$k] // empty' 2>/dev/null
+    return 0
+  fi
+  printf '%s' "$json" | tr -d '\n' |
+    sed -n "s/.*\"$key\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\".*/\1/p"
+}
+
+# The project root: the git top level if there is one, otherwise the directory.
+project_root() {
+  local dir="${1:-$PWD}" top
+  if command -v git >/dev/null 2>&1; then
+    top=$(cd "$dir" 2>/dev/null && git rev-parse --show-toplevel 2>/dev/null || true)
+    [ -n "$top" ] && { echo "$top"; return 0; }
+  fi
+  (cd "$dir" 2>/dev/null && pwd) || echo "$dir"
+}
+
+# Print a file's body without its YAML frontmatter.
+strip_frontmatter() {
+  awk 'NR==1 && /^---$/ {fm=1; next} fm && /^---$/ {fm=0; next} !fm {print}' "$1"
+}
+
+# Turn the first top-level heading into a third-level one.
+demote_first_heading() {
+  awk '!done && /^# / {sub(/^# /, "### "); done=1} {print}'
+}
+
+# Print at most N lines of a file, with a note if it was cut.
+head_with_note() {
+  local file="$1" max="$2" total
+  total=$(wc -l <"$file" | tr -d ' ')
+  head -n "$max" "$file"
+  if [ "$total" -gt "$max" ]; then
+    echo
+    echo "(Cut at $max of $total lines. Read $file for the rest.)"
+  fi
+}
+
+__sanitize() {
+  echo "${1:-}" | sed 's/[^A-Za-z0-9._-]/_/g; s/__*/_/g; s/^_//; s/_$//'
+}
+
+__desktop_path() {
+  # Windows Subsystem for Linux: use the Windows desktop.
+  if [ -f /proc/version ] && grep -qi microsoft /proc/version 2>/dev/null; then
+    if command -v wslvar >/dev/null 2>&1 && command -v wslpath >/dev/null 2>&1; then
+      local winprof
+      winprof="$(wslvar USERPROFILE 2>/dev/null || true)"
+      if [ -n "$winprof" ]; then
+        wslpath "$winprof\\Desktop" 2>/dev/null && return 0
+      fi
+    fi
+    if [ -d "/mnt/c/Users/$USER/Desktop" ]; then
+      echo "/mnt/c/Users/$USER/Desktop"
+      return 0
+    fi
+  fi
+
+  if command -v xdg-user-dir >/dev/null 2>&1; then
+    local xdg
+    xdg="$(xdg-user-dir DESKTOP 2>/dev/null || true)"
+    if [ -n "$xdg" ] && [ -d "$xdg" ]; then
+      echo "$xdg"
+      return 0
+    fi
+  fi
+
+  if [ -d "$HOME/Desktop" ]; then
+    echo "$HOME/Desktop"
+    return 0
+  fi
+
+  echo "$HOME"
+  echo "scribe: could not find a Desktop folder, so using your home folder" >&2
+}
+
+# ---------------------------------------------------------------------------
+# Settings (~/.scribe/config, one key=value per line)
+# ---------------------------------------------------------------------------
+
+config_get() {
+  local key="$1" default="${2:-}" value=""
+  if [ -f "$CONFIG" ]; then
+    value=$(awk -F= -v k="$key" '$1==k {sub(/^[^=]*=/, ""); v=$0} END {print v}' "$CONFIG")
+  fi
+  [ -n "$value" ] && echo "$value" || echo "$default"
+}
+
+config_set() {
+  local key="$1" value="$2"
+  mkdir -p "$SCRIBE_HOME"
+  touch "$CONFIG"
+  grep -v "^$key=" "$CONFIG" >"$CONFIG.tmp" || true
+  echo "$key=$value" >>"$CONFIG.tmp"
+  mv "$CONFIG.tmp" "$CONFIG"
+}
+
+cmd_config() {
+  local key="${1:-}" value="${2:-}"
+  if [ -z "$key" ]; then
+    echo "background = $(config_get background on)"
+    echo "model      = $(config_get model default)"
+    return 0
+  fi
+  case "$key" in
+    background)
+      [ -z "$value" ] && { config_get background on; return 0; }
+      case "$value" in
+        on|off) config_set background "$value" ;;
+        *) die "background must be 'on' or 'off'" ;;
+      esac
+      if [ "$value" = "off" ]; then
+        echo "Background helper turned off. Claude still writes the journal during sessions."
+      else
+        echo "Background helper turned on. It fills in the journal after each session."
+      fi
+      ;;
+    model)
+      [ -z "$value" ] && { config_get model default; return 0; }
+      config_set model "$value"
+      echo "The background helper will use the model: $value"
+      ;;
+    *) die "unknown setting '$key' (settings: background, model)" ;;
+  esac
+}
+
+# ---------------------------------------------------------------------------
+# Per-project state
+# ---------------------------------------------------------------------------
+
+is_declined() {
+  local root="$1"
+  [ -f "$root/.scribe-declined" ] && return 0
+  [ -f "$DECLINED" ] && grep -qxF "$root" "$DECLINED"
+}
+
+# Keep the journal out of git without touching the shared .gitignore.
+git_exclude_file() {
+  local root="$1" common
+  command -v git >/dev/null 2>&1 || return 1
+  common=$(cd "$root" && git rev-parse --git-common-dir 2>/dev/null) || return 1
+  case "$common" in /*) ;; *) common="$root/$common" ;; esac
+  echo "$common/info/exclude"
+}
+
+add_git_exclude() {
+  local exclude
+  exclude=$(git_exclude_file "$1") || return 0
+  mkdir -p "$(dirname "$exclude")"
+  if [ ! -f "$exclude" ] || ! grep -qxF "/$JOURNAL_NAME/" "$exclude"; then
+    if [ -s "$exclude" ] && [ -n "$(tail -c1 "$exclude")" ]; then echo >>"$exclude"; fi
+    echo "/$JOURNAL_NAME/" >>"$exclude"
+  fi
+}
+
+remove_git_exclude() {
+  local exclude
+  exclude=$(git_exclude_file "$1") || return 0
+  [ -f "$exclude" ] || return 0
+  grep -vxF "/$JOURNAL_NAME/" "$exclude" >"$exclude.tmp" || true
+  mv "$exclude.tmp" "$exclude"
+}
+
+# A project set up by the old curl installer: journal/ plus a block in CLAUDE.md.
+has_legacy_journal() {
+  local root="$1"
+  [ -d "$root/journal" ] && [ -f "$root/CLAUDE.md" ] && grep -q "scribe-block-begin" "$root/CLAUDE.md"
+}
+
+# The old curl installer wired its hooks into ~/.claude/settings.json.
+has_legacy_install() {
+  [ -f "$HOME/.claude/settings.json" ] && grep -q '\.scribe/hooks/' "$HOME/.claude/settings.json"
+}
+
+require_journal() {
+  ROOT="$(project_root)"
+  JOURNAL="$ROOT/$JOURNAL_NAME"
+  if [ ! -d "$JOURNAL" ]; then
+    if has_legacy_journal "$ROOT"; then
+      die "this project uses the old journal/ folder. Run 'scribe migrate' first."
+    fi
+    die "journaling is not on for this project. Run 'scribe init' to turn it on."
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# Commands
+# ---------------------------------------------------------------------------
+
+cmd_init() {
+  ROOT="$(project_root)"
+  JOURNAL="$ROOT/$JOURNAL_NAME"
+
+  if [ "${1:-}" = "--decline" ]; then
+    mkdir -p "$SCRIBE_HOME"
+    touch "$DECLINED"
+    grep -qxF "$ROOT" "$DECLINED" || echo "$ROOT" >>"$DECLINED"
+    echo "Terminal Scribe will not ask about $ROOT again."
+    return 0
+  fi
+
+  if [ "$ROOT" = "$HOME" ]; then
+    die "your home folder cannot have a journal. Open Claude in a project folder instead."
+  fi
+  if has_legacy_journal "$ROOT"; then
+    die "this project uses the old journal/ folder. Run 'scribe migrate' instead."
+  fi
+  [ -d "$TEMPLATES/journal-seed" ] || die "templates not found at $TEMPLATES"
+
+  mkdir -p "$JOURNAL/logbook" "$JOURNAL/decisions" "$JOURNAL/experiments"
+  local seed sub
+  for seed in lessons.md README.md; do
+    if [ ! -f "$JOURNAL/$seed" ]; then
+      sed "s/PLACEHOLDER/$(date '+%Y-%m-%d')/g" "$TEMPLATES/journal-seed/$seed" >"$JOURNAL/$seed"
+    fi
+  done
+  for sub in logbook decisions experiments; do
+    [ -f "$JOURNAL/$sub/.keep" ] || touch "$JOURNAL/$sub/.keep"
+  done
+
+  add_git_exclude "$ROOT"
+
+  # Clear any earlier "no" for this project.
+  if [ -f "$DECLINED" ]; then
+    grep -vxF "$ROOT" "$DECLINED" >"$DECLINED.tmp" || true
+    mv "$DECLINED.tmp" "$DECLINED"
+  fi
+  rm -f "$ROOT/.scribe-declined"
+
+  echo "Journaling is on for $ROOT."
+  echo "The journal is in $JOURNAL_NAME/ and is kept out of git."
+  if [ "$(config_get background on)" = "on" ]; then
+    echo "After each session a background helper fills in anything missed."
+    echo "It runs Claude, so it uses some of your plan's allowance. 'scribe config background off' stops it."
+  fi
+}
+
+cmd_pause() {
+  require_journal
+  : >"$JOURNAL/.paused"
+  echo "Journaling paused. Say 'resume journaling' to turn it back on."
+}
+
+cmd_resume() {
+  require_journal
+  rm -f "$JOURNAL/.paused"
+  echo "Journaling resumed."
+}
+
+count_md() {
+  local n=0 f
+  for f in "$1"/*.md; do [ -f "$f" ] && n=$((n + 1)); done
+  echo "$n"
+}
+
+cmd_status() {
+  ROOT="$(project_root)"
+  JOURNAL="$ROOT/$JOURNAL_NAME"
+
+  if [ ! -d "$JOURNAL" ]; then
+    if has_legacy_journal "$ROOT"; then
+      echo "This project has a journal from the old version. Run 'scribe migrate' to move it."
+    elif is_declined "$ROOT"; then
+      echo "Journaling is off for this project (you said no when asked)."
+    else
+      echo "Journaling is not on for this project."
+    fi
+    return 0
+  fi
+
+  if [ -f "$JOURNAL/.paused" ]; then
+    echo "Journaling is paused."
+  else
+    echo "Journaling is on."
+  fi
+  echo "  logbook entries: $(count_md "$JOURNAL/logbook")"
+  echo "  decisions:       $(count_md "$JOURNAL/decisions")"
+  echo "  experiments:     $(count_md "$JOURNAL/experiments")"
+  local latest
+  latest=$(ls -1t "$JOURNAL"/logbook/*.md 2>/dev/null | head -1)
+  [ -n "$latest" ] && echo "  last entry:      $(basename "$latest" .md)"
+  echo "  background helper: $(config_get background on)"
+}
+
+cmd_off() {
+  local yes=0
+  [ "${1:-}" = "--yes" ] && yes=1
+  require_journal
+
+  if [ $yes -eq 0 ]; then
+    printf "This deletes the journal for %s. Continue? (y/N) " "$ROOT"
+    local reply
+    read -r reply
+    case "$reply" in
+      y|Y|yes|YES) ;;
+      *) echo "Nothing changed."; return 1 ;;
+    esac
+  fi
+
+  rm -rf "$JOURNAL"
+  remove_git_exclude "$ROOT"
+  echo "Journaling is off for $ROOT and its journal has been deleted."
+}
+
+cmd_archive() {
+  require_journal
+  if [ -z "$(find "$JOURNAL" -name '*.md' ! -name README.md 2>/dev/null)" ]; then
+    die "nothing to archive yet: the journal is empty"
+  fi
+
+  local proj_name proj_safe today desktop out lib_out tmp summary
+  proj_name="$(basename "$ROOT")"
+  proj_safe="$(__sanitize "$proj_name")"
+  today="$(date '+%Y-%m-%d')"
+  desktop="$(__desktop_path 2>/dev/null)"
+  mkdir -p "$LIBRARY" "$desktop"
+  out="$desktop/${proj_safe}_archive.md"
+  lib_out="$LIBRARY/${proj_safe}_archive.md"
+  tmp="$(mktemp)"
+
+  # The summary comes from Claude, which may only read files in the project.
+  summary=""
+  set_model_args
+  if command -v claude >/dev/null 2>&1; then
+    summary=$(cd "$ROOT" && SCRIBE_SUBAGENT=1 CLAUDE_JOURNAL_HOOK=1 claude -p \
+      --tools "Read,Glob,Grep" \
+      --permission-mode dontAsk \
+      --no-session-persistence \
+      ${MODEL_ARGS[@]+"${MODEL_ARGS[@]}"} <<EOF 2>/dev/null || true
+Read the project journal in ./$JOURNAL_NAME/ and write a summary of the project "$proj_name" of about 300 words, in plain prose with no headings or bullets. Cover what the project was and who it was for, the key decisions and why they were made, the most important lessons, and where the project ended up. Reply with the summary only.
+EOF
+)
+  fi
+  [ -n "$summary" ] || summary="(The automatic summary was not available. The rest of this archive has the detail.)"
+
+  local sessions f
+  sessions=$(count_md "$JOURNAL/logbook")
+  {
+    echo "---"
+    echo "project: $proj_name"
+    echo "archived: $today"
+    echo "sessions: $sessions"
+    echo "---"
+    echo
+    echo "# $proj_name"
+    echo
+    echo "## Summary"
+    echo
+    echo "$summary"
+    echo
+    echo "## Lessons learned"
+    echo
+    [ -f "$JOURNAL/lessons.md" ] && strip_frontmatter "$JOURNAL/lessons.md" | grep -v '^# '
+    echo
+
+    if [ "$(count_md "$JOURNAL/decisions")" -gt 0 ]; then
+      echo "## Decisions"
+      echo
+      for f in "$JOURNAL"/decisions/*.md; do
+        strip_frontmatter "$f" | demote_first_heading
+        echo
+      done
+    fi
+
+    if [ "$(count_md "$JOURNAL/experiments")" -gt 0 ]; then
+      echo "## Experiments"
+      echo
+      for f in "$JOURNAL"/experiments/*.md; do
+        strip_frontmatter "$f" | demote_first_heading
+        echo
+      done
+    fi
+
+    if [ -f "$JOURNAL/glossary.md" ]; then
+      echo "## Glossary"
+      echo
+      strip_frontmatter "$JOURNAL/glossary.md" | grep -v '^# '
+      echo
+    fi
+
+    if [ "$sessions" -gt 0 ]; then
+      echo "## Recent activity"
+      echo
+      ls -1t "$JOURNAL"/logbook/*.md 2>/dev/null | head -10 | while IFS= read -r f; do
+        strip_frontmatter "$f" | demote_first_heading
+        echo
+      done
+    fi
+  } >"$tmp"
+
+  mv "$tmp" "$out"
+  cp "$out" "$lib_out"
+  echo "Saved to your desktop as ${proj_safe}_archive.md"
+  echo "  desktop: $out"
+  echo "  library: $lib_out"
+}
+
+cmd_link() {
+  local name="${1:-}" safe archive imports
+  [ -n "$name" ] || { echo "Usage: scribe link <project-name>" >&2; return 2; }
+  safe="$(__sanitize "$name")"
+  archive="$LIBRARY/${safe}_archive.md"
+  [ -f "$archive" ] || die "'$name' not found in library at $archive. Run 'scribe library' to see what is there."
+  require_journal
+  imports="$JOURNAL/.imports"
+  if [ ! -f "$imports" ] || ! grep -qxF "$safe" "$imports"; then
+    echo "$safe" >>"$imports"
+  fi
+  echo "Linked $safe. Its summary and lessons will load at the start of the next session."
+}
+
+cmd_unlink() {
+  local name="${1:-}" safe imports
+  [ -n "$name" ] || { echo "Usage: scribe unlink <project-name>" >&2; return 2; }
+  safe="$(__sanitize "$name")"
+  require_journal
+  imports="$JOURNAL/.imports"
+  if [ -f "$imports" ]; then
+    grep -vxF "$safe" "$imports" >"$imports.tmp" || true
+    mv "$imports.tmp" "$imports"
+    [ -s "$imports" ] || rm -f "$imports"
+  fi
+  echo "Unlinked $safe."
+}
+
+cmd_library() {
+  local f found=0
+  for f in "$LIBRARY"/*_archive.md; do
+    [ -f "$f" ] || continue
+    [ $found -eq 0 ] && echo "Archived projects:"
+    found=1
+    echo "  $(basename "$f" _archive.md) (archived $(awk -F': ' '/^archived:/ {print $2; exit}' "$f"))"
+  done
+  [ $found -eq 1 ] || echo "There are no archived projects yet."
+}
+
+# Move a project from the old journal/ layout to .scribe/.
+cmd_migrate() {
+  ROOT="$(project_root)"
+  JOURNAL="$ROOT/$JOURNAL_NAME"
+  has_legacy_journal "$ROOT" || die "there is no old journal/ folder to move in $ROOT"
+  [ -e "$JOURNAL" ] && die "$JOURNAL already exists, so the old journal was left where it is"
+
+  mv "$ROOT/journal" "$JOURNAL"
+  [ -f "$JOURNAL/.imports.txt" ] && mv "$JOURNAL/.imports.txt" "$JOURNAL/.imports"
+  rm -rf "$JOURNAL/.scribe.state.d" "$JOURNAL/.scribe.log"
+
+  # Take the managed block out of CLAUDE.md and delete the file if nothing is left.
+  awk '/<!-- scribe-block-begin -->/ {skip=1; next} /<!-- scribe-block-end -->/ {skip=0; next} !skip {print}' \
+    "$ROOT/CLAUDE.md" >"$ROOT/CLAUDE.md.tmp"
+  awk 'NR==FNR {if (NF) last=NR; next} FNR<=last' "$ROOT/CLAUDE.md.tmp" "$ROOT/CLAUDE.md.tmp" >"$ROOT/CLAUDE.md"
+  rm -f "$ROOT/CLAUDE.md.tmp"
+  [ -s "$ROOT/CLAUDE.md" ] || rm -f "$ROOT/CLAUDE.md"
+
+  if [ -f "$ROOT/.gitignore" ]; then
+    grep -vx "journal/" "$ROOT/.gitignore" >"$ROOT/.gitignore.tmp" || true
+    mv "$ROOT/.gitignore.tmp" "$ROOT/.gitignore"
+    [ -s "$ROOT/.gitignore" ] || rm -f "$ROOT/.gitignore"
+  fi
+  add_git_exclude "$ROOT"
+
+  echo "Moved the journal from journal/ to $JOURNAL_NAME/ and removed the Terminal Scribe block from CLAUDE.md."
+  echo "Check 'git status': CLAUDE.md and .gitignore may now show as changed."
+}
+
+# Undo what the old curl installer did to Claude Code and the shell.
+# Archived projects in ~/.scribe/library are kept.
+cmd_remove_old_install() {
+  local settings="$HOME/.claude/settings.json" f rc
+  if [ -f "$settings" ] && grep -q '\.scribe/hooks/' "$settings"; then
+    local updated=""
+    if command -v jq >/dev/null 2>&1; then
+      updated=$(jq '
+        if .hooks then
+          .hooks |= with_entries(.value |= map(select(
+            (.scribe != true) and
+            ((.hooks // []) | map(.command // "") | any(test("\\.scribe/hooks/")) | not)
+          )))
+          | .hooks |= with_entries(select(.value | length > 0))
+        else . end' "$settings") || updated=""
+    elif command -v python3 >/dev/null 2>&1; then
+      updated=$(python3 - "$settings" <<'PY'
+import json, sys
+path = sys.argv[1]
+with open(path) as f:
+    data = json.load(f)
+hooks = data.get("hooks", {})
+for event in list(hooks):
+    kept = [g for g in hooks[event]
+            if not g.get("scribe")
+            and not any(".scribe/hooks/" in h.get("command", "") for h in g.get("hooks", []))]
+    if kept:
+        hooks[event] = kept
+    else:
+        del hooks[event]
+print(json.dumps(data, indent=2))
+PY
+) || updated=""
+    fi
+    if [ -z "$updated" ]; then
+      die "could not edit $settings (needs jq or python3). Remove the two entries that mention .scribe/hooks/ by hand."
+    fi
+    cp "$settings" "$settings.scribe-backup"
+    printf '%s\n' "$updated" >"$settings"
+    echo "Removed the old hooks from $settings (backup saved as settings.json.scribe-backup)."
+  fi
+
+  for f in journal-pause.md journal-resume.md journal-status.md; do
+    [ -f "$HOME/.claude/commands/$f" ] && grep -q 'scribe' "$HOME/.claude/commands/$f" && rm -f "$HOME/.claude/commands/$f"
+  done
+
+  for rc in "$HOME/.zshrc" "$HOME/.bashrc" "$HOME/.bash_profile"; do
+    [ -f "$rc" ] || continue
+    if grep -q '\.scribe/bin' "$rc"; then
+      grep -v '\.scribe/bin' "$rc" | grep -vx '# scribe' >"$rc.tmp" && mv "$rc.tmp" "$rc"
+      echo "Removed the old PATH line from $rc."
+    fi
+  done
+
+  rm -rf "${SCRIBE_HOME:?}/bin" "${SCRIBE_HOME:?}/hooks" "${SCRIBE_HOME:?}/templates" \
+         "${SCRIBE_HOME:?}/uninstall.sh" "${SCRIBE_HOME:?}/VERSION"
+  echo "The old install is gone. Archived projects in $LIBRARY were kept."
+}
+
+cmd_doctor() {
+  local issues=0
+  echo "Terminal Scribe $(plugin_version)"
+  if command -v claude >/dev/null 2>&1; then
+    echo "  ok   Claude Code is installed"
+  else
+    echo "  FAIL Claude Code is not on PATH, so archive summaries and the background helper cannot run"
+    issues=$((issues + 1))
+  fi
+  if command -v git >/dev/null 2>&1; then
+    echo "  ok   git is installed"
+  else
+    echo "  note git is not installed, so journals cannot be excluded from git"
+  fi
+  if command -v jq >/dev/null 2>&1; then
+    echo "  ok   jq is installed"
+  else
+    echo "  note jq is not installed (optional)"
+  fi
+  if [ -d "$TEMPLATES/journal-seed" ]; then
+    echo "  ok   templates found"
+  else
+    echo "  FAIL templates missing from $TEMPLATES"
+    issues=$((issues + 1))
+  fi
+  if has_legacy_install; then
+    echo "  FAIL the old curl install is still wired in. Run 'scribe remove-old-install'"
+    issues=$((issues + 1))
+  else
+    echo "  ok   no old install left over"
+  fi
+  echo "  ok   background helper: $(config_get background on), model: $(config_get model default)"
+  echo
+  if [ $issues -eq 0 ]; then
+    echo "Everything looks healthy."
+  else
+    echo "$issues problem(s) found."
+    return 1
+  fi
+}
+
+# Sets MODEL_ARGS to the --model flag for helper runs, or to nothing.
+set_model_args() {
+  local model
+  model="$(config_get model default)"
+  MODEL_ARGS=()
+  [ "$model" = "default" ] || MODEL_ARGS=(--model "$model")
+}
+
+# ---------------------------------------------------------------------------
+# Hooks
+# ---------------------------------------------------------------------------
+
+# Prints context for Claude at the start of every session. Plain stdout from a
+# SessionStart hook is added to Claude's context.
+hook_session_start() {
+  is_helper_session && return 0
+
+  local input="" cwd
+  [ -t 0 ] || input="$(cat || true)"
+  cwd="$(json_field "$input" cwd)"
+  [ -n "$cwd" ] || cwd="${CLAUDE_PROJECT_DIR:-$PWD}"
+  ROOT="$(project_root "$cwd")"
+  JOURNAL="$ROOT/$JOURNAL_NAME"
+
+  if has_legacy_install; then
+    cat <<EOF
+Terminal Scribe note: the old curl version of Terminal Scribe is still installed alongside the plugin, so both may write journals. In your next reply, tell the person this once and offer to run \`"$SCRIBE_BIN_PATH" remove-old-install\`, which removes the old hooks, commands and PATH line and keeps their archived projects.
+
+EOF
+  fi
+
+  [ "$ROOT" = "$HOME" ] && return 0
+
+  if [ ! -d "$JOURNAL" ]; then
+    if has_legacy_journal "$ROOT"; then
+      cat <<EOF
+Terminal Scribe: this project ($ROOT) has a journal in journal/ from the old version of Terminal Scribe. In your next reply, offer once to move it with \`"$SCRIBE_BIN_PATH" migrate\`. That moves it to .scribe/, removes the Terminal Scribe block from CLAUDE.md and the journal/ line from .gitignore, and keeps it out of git another way. Until then, keep following the journal instructions in CLAUDE.md.
+EOF
+      return 0
+    fi
+    is_declined "$ROOT" && return 0
+    cat <<EOF
+Terminal Scribe is installed but not yet turned on for this project ($ROOT).
+
+In your next reply, ask once whether they want Terminal Scribe to keep a journal here. Suggested wording: "Terminal Scribe can keep a private journal of this project, so I remember what we decided next time. Turn it on? (yes / no / not now)".
+
+- Yes: run \`"$SCRIBE_BIN_PATH" init\` with Bash and tell them what it printed.
+- No: run \`"$SCRIBE_BIN_PATH" init --decline\`, so you do not ask again.
+- Not now, or no clear answer: do nothing. You will ask again next session.
+
+Do not ask again this session once they have answered. Always use that full path, because another program called \`scribe\` may come first on the PATH.
+EOF
+    return 0
+  fi
+
+  if [ -f "$JOURNAL/.paused" ]; then
+    echo "Terminal Scribe is paused for this project ($ROOT). Do not write to the journal unless the person asks you to resume (\`"$SCRIBE_BIN_PATH" resume\`)."
+    return 0
+  fi
+
+  sed "s|{{SCRIBE_BIN}}|$SCRIBE_BIN_PATH|g" "$TEMPLATES/instructions.md"
+  echo
+  echo "# Journal for $(basename "$ROOT")"
+
+  local latest
+  latest=$(ls -1t "$JOURNAL"/logbook/*.md 2>/dev/null | head -1)
+  if [ -n "$latest" ]; then
+    echo
+    echo "## Most recent logbook entry ($(basename "$latest"))"
+    echo
+    head_with_note "$latest" 150
+  fi
+  if [ -f "$JOURNAL/lessons.md" ]; then
+    echo
+    echo "## Lessons so far"
+    echo
+    head_with_note "$JOURNAL/lessons.md" 150
+  fi
+
+  echo
+  echo "## What else is in the journal (read only when needed)"
+  echo
+  echo "- \`$JOURNAL_NAME/decisions/\`: $(count_md "$JOURNAL/decisions") decision(s)"
+  echo "- \`$JOURNAL_NAME/experiments/\`: $(count_md "$JOURNAL/experiments") experiment(s)"
+  echo "- \`$JOURNAL_NAME/logbook/\`: $(count_md "$JOURNAL/logbook") day(s) of logbook"
+  [ -f "$JOURNAL/glossary.md" ] && echo "- \`$JOURNAL_NAME/glossary.md\`"
+  local f
+  for f in "$JOURNAL"/*.md; do
+    [ -f "$f" ] || continue
+    case "$(basename "$f")" in README.md|lessons.md|glossary.md) continue ;; esac
+    echo "- \`$JOURNAL_NAME/$(basename "$f")\`"
+  done
+
+  local imp archive
+  if [ -f "$JOURNAL/.imports" ]; then
+    while IFS= read -r imp; do
+      [ -n "$imp" ] || continue
+      archive="$LIBRARY/${imp}_archive.md"
+      [ -f "$archive" ] || continue
+      echo
+      echo "## Background from the past project \"$imp\""
+      echo
+      awk '/^## / {keep = ($0 == "## Summary" || $0 == "## Lessons learned")} keep {print}' "$archive"
+    done <"$JOURNAL/.imports"
+  fi
+  log "session-start: context loaded for $ROOT"
+}
+
+# Starts a background Claude that reads the finished session and fills in the
+# journal. It may only read the transcript and the project, and only write
+# inside .scribe/. It has no shell and no web access.
+hook_session_end() {
+  is_helper_session && return 0
+
+  local input="" cwd transcript session size state_dir state last lock
+  [ -t 0 ] || input="$(cat || true)"
+  cwd="$(json_field "$input" cwd)"
+  [ -n "$cwd" ] || cwd="${CLAUDE_PROJECT_DIR:-$PWD}"
+  ROOT="$(project_root "$cwd")"
+  JOURNAL="$ROOT/$JOURNAL_NAME"
+
+  [ -d "$JOURNAL" ] || return 0
+  [ -f "$JOURNAL/.paused" ] && { log "session-end: paused in $ROOT"; return 0; }
+  [ "$(config_get background on)" = "on" ] || { log "session-end: background helper is off"; return 0; }
+  command -v claude >/dev/null 2>&1 || { log "session-end: claude not on PATH"; return 0; }
+
+  transcript="$(json_field "$input" transcript_path)"
+  [ -n "$transcript" ] && [ -f "$transcript" ] || { log "session-end: no transcript"; return 0; }
+
+  size=$(wc -c <"$transcript" | tr -d ' ')
+  [ "$size" -ge 2000 ] || { log "session-end: transcript too short ($size bytes)"; return 0; }
+
+  session="$(json_field "$input" session_id)"
+  [ -n "$session" ] || session="$(basename "$transcript" .jsonl)"
+  state_dir="$JOURNAL/.state"
+  mkdir -p "$state_dir"
+  state="$state_dir/$(__sanitize "$session")"
+
+  # Skip a transcript that has not grown since the helper last read it.
+  last=$(cat "$state" 2>/dev/null || echo 0)
+  [ "$size" -gt "${last:-0}" ] || { log "session-end: nothing new in $session"; return 0; }
+
+  # One helper per project at a time. A lock older than 30 minutes is stale.
+  lock="$state_dir/lock"
+  if [ -d "$lock" ] && [ -n "$(find "$lock" -maxdepth 0 -mmin -30 2>/dev/null)" ]; then
+    log "session-end: helper already running in $ROOT"
+    return 0
+  fi
+  rm -rf "$lock"
+  mkdir "$lock" 2>/dev/null || return 0
+
+  local today prompt_file
+  today="$(date '+%Y-%m-%d')"
+  prompt_file="$state_dir/prompt.txt"
+  cat >"$prompt_file" <<EOF
+You keep the journal for the project at $ROOT. A Claude Code session has just ended.
+
+Read the transcript at $transcript and make sure the journal in ./$JOURNAL_NAME/ records it. Then stop.
+
+- Today's logbook is ./$JOURNAL_NAME/logbook/$today.md. If it already covers the session, add only what is missing. If it does not exist, create it with YAML frontmatter (id, type: logbook, date: $today, topic, tags, status, related) and a chronological account in plain English.
+- If a real decision was made, add ./$JOURNAL_NAME/decisions/NNN-slug.md (Context, Decision, Why, Consequences), numbered after the last one. Casual discussion is not a decision.
+- If a lesson worth keeping came up, add it to ./$JOURNAL_NAME/lessons.md. Ask: "would someone joining in six months thank me for this?"
+- If something was tried with a hypothesis and an outcome, success or failure, add ./$JOURNAL_NAME/experiments/$today-slug.md.
+- Add project-specific words to ./$JOURNAL_NAME/glossary.md.
+- Never copy passwords, API keys, tokens or personal data into the journal. Describe them instead.
+- Do not touch files whose names start with a dot.
+
+Do not ask questions. Do not explain what you did.
+EOF
+
+  set_model_args
+  (
+    cd "$ROOT" || exit 0
+    SCRIBE_SUBAGENT=1 CLAUDE_JOURNAL_HOOK=1 claude -p \
+      --tools "Read,Glob,Grep,Edit,Write" \
+      --permission-mode dontAsk \
+      --allowedTools "Edit(./$JOURNAL_NAME/**),Read(/$transcript)" \
+      --no-session-persistence \
+      ${MODEL_ARGS[@]+"${MODEL_ARGS[@]}"} <"$prompt_file" >>"$state_dir/helper.log" 2>&1 \
+      && echo "$size" >"$state"
+    rm -rf "$lock" "$prompt_file"
+  ) </dev/null >/dev/null 2>&1 &
+  # Detach so the helper keeps running after Claude Code exits.
+  disown 2>/dev/null || true
+  log "session-end: helper started for $session in $ROOT"
+}
+
+cmd_hook() {
+  case "${1:-}" in
+    session-start) hook_session_start ;;
+    session-end)   hook_session_end ;;
+    *) die "unknown hook '${1:-}'" ;;
+  esac
+  # A hook must never block or fail the user's session.
+  return 0
+}
+
+usage() {
+  cat <<EOF
+scribe $(plugin_version): the Terminal Scribe helper.
+
+Claude runs these for you when you ask in plain English.
+
+  scribe init [--decline]    Turn journaling on here (or say no, once)
+  scribe status              Is journaling on, and what is in the journal
+  scribe pause | resume      Stop and restart journal writes
+  scribe archive             Save a summary of the project to your desktop
+  scribe library             List archived projects
+  scribe link | unlink NAME  Load (or stop loading) an archived project's lessons
+  scribe off [--yes]         Turn journaling off here and delete the journal
+  scribe config [KEY VALUE]  Settings: background on|off, model NAME|default
+  scribe migrate             Move a journal from the old journal/ folder
+  scribe remove-old-install  Remove the old curl-installed version
+  scribe doctor              Check that everything is set up
+  scribe version             Print the version
+EOF
+}
+
+main() {
+  [ $# -gt 0 ] || { usage; exit 1; }
+  local cmd="$1"
+  shift
+  case "$cmd" in
+    init)               cmd_init "$@" ;;
+    status)             cmd_status "$@" ;;
+    pause)              cmd_pause "$@" ;;
+    resume)             cmd_resume "$@" ;;
+    archive)            cmd_archive "$@" ;;
+    library)            cmd_library "$@" ;;
+    link)               cmd_link "$@" ;;
+    unlink)             cmd_unlink "$@" ;;
+    off)                cmd_off "$@" ;;
+    config)             cmd_config "$@" ;;
+    migrate)            cmd_migrate "$@" ;;
+    remove-old-install) cmd_remove_old_install "$@" ;;
+    doctor)             cmd_doctor "$@" ;;
+    hook)               cmd_hook "$@" ;;
+    version|-v|--version) plugin_version ;;
+    help|-h|--help)     usage ;;
+    __desktop_path)     __desktop_path "$@" ;;
+    __sanitize)         __sanitize "$@" ;;
+    *)
+      echo "scribe: unknown command '$cmd'. Run 'scribe help' to see the commands." >&2
+      exit 2
+      ;;
+  esac
+}
+
+main "$@"

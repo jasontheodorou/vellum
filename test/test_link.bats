@@ -4,11 +4,9 @@ load helpers
 
 setup() {
   setup_isolated_env
-  "$SCRIBE_BIN" init
-
-  # Seed the library with a fake archived project.
+  "$SCRIBE_BIN" init >/dev/null
   mkdir -p "$HOME/.scribe/library"
-  cat >"$HOME/.scribe/library/foo_archive.md" <<EOF
+  cat >"$HOME/.scribe/library/foo_archive.md" <<ARCH
 ---
 project: foo
 archived: 2026-04-01
@@ -20,43 +18,42 @@ Foo summary content.
 
 ## Lessons learned
 - Foo lesson.
-EOF
+ARCH
 }
 teardown() { teardown_isolated_env; }
 
-@test "scribe link adds the project to .imports.txt" {
+@test "link records the project" {
   run "$SCRIBE_BIN" link foo
   [ "$status" -eq 0 ]
-  grep -qx "foo" "$PROJECT_DIR/journal/.imports.txt"
+  grep -qx "foo" "$PROJECT_DIR/.scribe/.imports"
 }
 
-@test "scribe link is idempotent (no duplicate lines)" {
+@test "link does not repeat itself" {
   "$SCRIBE_BIN" link foo
   "$SCRIBE_BIN" link foo
-  count=$(grep -c "^foo$" "$PROJECT_DIR/journal/.imports.txt")
-  [ "$count" -eq 1 ]
+  [ "$(grep -cx foo "$PROJECT_DIR/.scribe/.imports")" -eq 1 ]
 }
 
-@test "scribe link rejects unknown projects" {
-  run "$SCRIBE_BIN" link does-not-exist
+@test "link rejects a project that is not in the library" {
+  run "$SCRIBE_BIN" link nope
   [ "$status" -ne 0 ]
   [[ "$output" == *"not found in library"* ]]
 }
 
-@test "scribe unlink removes the entry" {
+@test "unlink removes the entry" {
   "$SCRIBE_BIN" link foo
   run "$SCRIBE_BIN" unlink foo
   [ "$status" -eq 0 ]
-  ! grep -qx "foo" "$PROJECT_DIR/journal/.imports.txt" 2>/dev/null
+  [ ! -f "$PROJECT_DIR/.scribe/.imports" ]
 }
 
-@test "scribe library lists archived projects" {
+@test "library lists archived projects with their dates" {
   run "$SCRIBE_BIN" library
   [ "$status" -eq 0 ]
-  [[ "$output" == *"foo"* ]]
+  [[ "$output" == *"foo (archived 2026-04-01)"* ]]
 }
 
-@test "scribe library when empty prints a friendly message" {
+@test "library when empty says so" {
   rm -f "$HOME/.scribe/library"/*.md
   run "$SCRIBE_BIN" library
   [ "$status" -eq 0 ]

@@ -1,5 +1,4 @@
-dist/
-*.swp
 .DS_Store
+*.swp
 *.log
 .bats-tmp/
