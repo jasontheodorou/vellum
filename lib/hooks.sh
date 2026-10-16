@@ -419,6 +419,10 @@ $(cat "$SESSIONS/$(__sanitize "$session")")"
   size=$(wc -c <"$transcript" | tr -d ' ')
   [ "$size" -ge 2000 ] || { log "session-end: transcript too short ($size bytes)"; return 0; }
 
+  # Keep recall up to date with the conversation that just ended.
+  ( recall_cache_one "$transcript" ) </dev/null >/dev/null 2>&1 &
+  disown 2>/dev/null || true
+
   count=$(printf '%s\n' "$roots" | grep -c .)
   [ "$count" -gt 1 ] && others="yes"
   [ "$(project_root "$cwd")" = "$HOME_P" ] && others="yes"

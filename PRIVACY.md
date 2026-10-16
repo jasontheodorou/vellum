@@ -14,6 +14,10 @@ When journaling is on for a project, Claude writes notes about your sessions int
 
 Claude is told never to copy passwords, API keys, tokens or personal data into the journal, and to describe them instead. That is an instruction to Claude, not a guarantee, so look through a journal before you share it.
 
+## Recall
+
+To search past conversations, Terminal Scribe makes a condensed copy of each conversation Claude Code has saved in `~/.claude/projects/`, keeping what you and Claude said and a one-line note of each action. The copies are kept in `~/.scribe/recall/`, about a two-hundredth of the size of the originals, and never leave your Mac. Delete that folder at any time; it is rebuilt the next time you search.
+
 ## The project list and session notes
 
 - `~/.scribe/projects.tsv` lists each project's name, folder, port, status and the dates it was started and closed.

@@ -33,6 +33,7 @@ Then type `claude` to start, and say what you want.
 - "Where did we get to?"
 - "What did we decide about the soil, and why?"
 - "Have I dealt with drainage in any other project?"
+- "Why did we drop the Priorities page, and what did I say about it?" Claude searches every Claude Code conversation you have ever had, not just the journals.
 - "What did I do this week?"
 - "Review this project." Claude gives you direct feedback and the next three things to do.
 - "Bring in what we learned on the patio project."
@@ -72,6 +73,12 @@ Claude reads the overview, your preferences and the index whenever you open a pr
 - **Journal updates.** If the curator changed a journal after your last session, one line says what, such as "sanctum: 1 decision, lessons and the overview."
 - **The right port.** Every project has its own port, and Claude uses it when it starts the project's server, so two projects never clash.
 - **The status line.** The bottom line shows the project's name next to a dot in its own colour. It adds more only when something needs your attention: the server is live, you are on a side branch, commits are waiting to be pushed, or the journal is paused. To turn it on, add `"statusLine": {"type": "command", "command": "scribe statusline"}` to `~/.claude/settings.json`, or ask Claude to do it.
+
+## Recall: every past conversation
+
+Claude Code saves every conversation on your Mac, but nothing searches them. Terminal Scribe does. Ask about anything you discussed, in any project, and Claude finds the conversation, the date and your exact words, then reads more if it needs to.
+
+The first search reads your history once, which takes a minute or two. After that each conversation is added as it ends. Background helper runs are left out.
 
 Claude Code remembers some facts about you, and git remembers what changed. Neither keeps the reasons, the options you turned down, what failed or what you said when you saw the result. The journal keeps all of that.
 

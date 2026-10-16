@@ -18,7 +18,7 @@ Projects:
 
 Across projects:
 
-- "have we faced this before?", "what did we do about X in other projects?": `scribe search "words"`. Try a few different words. Open the files it finds before answering.
+- "have we faced this before?", "what did we do about X in other projects?", "when did we talk about X?": run both `scribe search "words"` (every project's journal) and `scribe recall "words" --session {{SESSION}}` (every past conversation, newest and best matches first). Use two or three distinctive words, and try others if nothing comes back. To read more of a conversation it finds, `scribe recall --show <id> "words"`. Say which project and date each answer came from.
 - "what did I do this week?": `scribe digest` (or `scribe digest 30` for a month). Summarise it by project.
 
 Before sharing code:

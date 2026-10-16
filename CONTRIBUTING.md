@@ -13,6 +13,7 @@ Thank you for helping. Bug reports, ideas and pull requests are all welcome.
 | `lib/common.sh` | Shared helpers, settings and which folder holds a project's journal |
 | `lib/journal.sh` | The journal: starter files, the index, the curator and journal commands |
 | `lib/projects.sh` | The project list and the project commands |
+| `lib/recall.sh` | Recall: condensing and searching past conversations |
 | `lib/hooks.sh` | What Claude is told when a session starts, and the curator run when it ends |
 | `templates/projects.md` | What Claude is told in every session about handling projects |
 | `templates/instructions.md` | What Claude is told about keeping a project's journal |

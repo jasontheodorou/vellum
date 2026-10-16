@@ -35,6 +35,8 @@ LESSONS="lessons.md"
 . "$PLUGIN_ROOT/lib/journal.sh"
 # shellcheck source=../lib/projects.sh
 . "$PLUGIN_ROOT/lib/projects.sh"
+# shellcheck source=../lib/recall.sh
+. "$PLUGIN_ROOT/lib/recall.sh"
 # shellcheck source=../lib/hooks.sh
 . "$PLUGIN_ROOT/lib/hooks.sh"
 
@@ -54,6 +56,7 @@ Projects
   scribe import-kit          Add every project from the earlier project kit
   scribe running | stop NAME Which projects are running; stop one
   scribe search WORDS        Search every project's journal
+  scribe recall WORDS        Search every past Claude Code conversation
   scribe digest [DAYS]       What happened across projects lately
   scribe preship             Checks before pushing code
   scribe publish [--public]  Create a GitHub repository and push
@@ -91,6 +94,7 @@ main() {
     running)            cmd_running "$@" ;;
     stop)               cmd_stop "$@" ;;
     search)             cmd_search "$@" ;;
+    recall)             cmd_recall "$@" ;;
     digest)             cmd_digest "$@" ;;
     preship)            cmd_preship "$@" ;;
     publish)            cmd_publish "$@" ;;
