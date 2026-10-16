@@ -346,3 +346,15 @@ FAKE
   "$SCRIBE_BIN" new garden >/dev/null
   [ -d "$HOME/work/garden" ]
 }
+
+@test "paths: a projects folder reached through a shortcut is never listed twice" {
+  mkdir -p "$HOME/real-projects"
+  ln -s "$HOME/real-projects" "$HOME/link-projects"
+  "$SCRIBE_BIN" config projects-dir "$HOME/link-projects" >/dev/null
+  "$SCRIBE_BIN" new garden >/dev/null
+  printf '{"cwd":"%s","session_id":"s"}' "$HOME/real-projects/garden" | "$SCRIBE_BIN" hook session-start >/dev/null
+  printf '{"cwd":"%s","session_id":"s"}' "$HOME/link-projects/garden" | "$SCRIBE_BIN" hook session-start >/dev/null
+  [ "$(grep -c . "$HOME/.scribe/projects.tsv")" -eq 1 ]
+  out=$(printf '{"cwd":"%s"}' "$HOME/link-projects/garden" | "$SCRIBE_BIN" statusline | sed 's/\x1b\[[0-9;]*m//g')
+  [[ "$out" == "● garden"* ]]
+}

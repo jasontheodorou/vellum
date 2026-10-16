@@ -13,6 +13,7 @@ project_context() {
     return 0
   fi
 
+  port_guidance
   sed -e "s|{{SCRIBE_BIN}}|$SCRIBE_BIN_PATH|g" -e "s|{{J}}|$JOURNAL_NAME|g" -e "s|{{LESSONS}}|$LESSONS|g" "$TEMPLATES/instructions.md"
   echo
   echo "# Journal for $(basename "$ROOT")"
@@ -59,6 +60,74 @@ project_context() {
   strip_frontmatter "$JOURNAL/INDEX.md" | grep -v '^# Index' | cat -s | sed '1{/^$/d;}' | head -150
 
   linked_context
+}
+
+# The project's own port, so its local server never clashes with another's.
+project_port() {
+  field "$(reg_line "$(reg_name_for_path "$ROOT")")" 3
+}
+
+port_guidance() {
+  local port
+  port="$(project_port)"
+  [ -n "$port" ] || return 0
+  cat <<EOF
+## This project's port is $port
+
+When you start this project's local web server, always use port $port, so it never clashes with another project. Pass it the way the tool expects, for example \`PORT=$port npm run dev\` (Next.js, Express), \`npm run dev -- --port $port\` (Vite, Astro), or \`python3 -m http.server $port\`. If the project's own config fixes a different port, change it to $port. Then give the person the address, http://localhost:$port. Do not mention the port otherwise.
+
+EOF
+}
+
+# One line to put the person back in the picture: what happened last time and
+# what is next, from the overview, or the latest logbook if there is no
+# overview yet. Prints nothing if the journal has neither.
+last_time_line() {
+  local overview="$JOURNAL/overview.md" last="" next="" latest
+  if [ -f "$overview" ] && ! grep -q '^Not written yet' "$overview"; then
+    last="$(awk '/^## Recent sessions/ {want = 1; next} want && /^## / {exit} want && /^[-*] / {sub(/^[-*] +/, ""); print; exit}' "$overview")"
+    next="$(awk '/^## Next steps/ {want = 1; next} want && /^## / {exit} want && /^[-*] / {sub(/^[-*] +/, ""); print; exit}' "$overview")"
+  fi
+  # Overviews from the project kit list goals in place of next steps.
+  if [ -z "$next" ] && [ -f "$overview" ]; then
+    next="$(awk '/^## Active goals/ {want = 1; next} want && /^## / {exit} want && /^[-*] / {sub(/^[-*] +/, ""); print; exit}' "$overview")"
+  fi
+  if [ -z "$last" ]; then
+    latest=$(ls -1 "$JOURNAL"/logbook/*.md 2>/dev/null | sort | tail -1)
+    [ -n "$latest" ] || return 0
+    # The first section heading, or else the first sentence of the entry.
+    last="$(strip_frontmatter "$latest" | awk '
+      /^## / { sub(/^## +/, ""); print; exit }
+      /^#/ || !NF || /^---/ { next }
+      { line = $0; if (match(line, /\. /)) line = substr(line, 1, RSTART); print line; exit }')"
+    [ -n "$last" ] || return 0
+    last="$(basename "$latest" .md): $last"
+  fi
+  # "2026-10-16: Started the project" reads better as "16 Oct: Started the project".
+  last="$(printf '%s' "$last" | sed -E 's/^\*?\*?([0-9]{4})-([0-9]{2})-([0-9]{2})\*?\*?:? */\3-\2 /; s/^0//' | awk '{
+    split("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec", m, " ")
+    if (match($1, /^[0-9]+-[0-9][0-9]$/)) { split($1, d, "-"); $1 = d[1] " " m[d[2] + 0] ":" }
+    print }')"
+  printf 'Last time, %s' "$(shorten "$last" 100)"
+  [ -n "$next" ] && printf ' Next: %s' "$(shorten "$next" 80)"
+  echo
+}
+
+# Shorten text to about N characters at a word boundary, ending with a full
+# stop or an ellipsis.
+shorten() {
+  printf '%s' "$1" | awk -v n="$2" '{
+    t = $0
+    if (length(t) > n) {
+      t = substr(t, 1, n)
+      sub(/[[:space:]]+[^[:space:]]*$/, "", t)
+      sub(/[,;:.[:space:]]+$/, "", t)
+      t = t "…"
+    } else if (t !~ /[.!?…]$/) {
+      t = t "."
+    }
+    print t
+  }'
 }
 
 # Background from linked projects: an archive's summary and lessons, or a live
@@ -144,7 +213,7 @@ take_notices() {
   [ -d "$SCRIBE_HOME/notices" ] || return 0
   for f in "$SCRIBE_HOME"/notices/*; do
     [ -f "$f" ] || continue
-    if [ "$root" = "$HOME" ] || [ "$root" = "$(projects_dir)" ] || [ "$(basename "$f")" = "$(__sanitize "$root")" ]; then
+    if [ "$root" = "$HOME_P" ] || [ "$root" = "$(projects_dir)" ] || [ "$(basename "$f")" = "$(__sanitize "$root")" ]; then
       out="${out:+$out; }$(cat "$f")"
       rm -f "$f"
     fi
@@ -173,6 +242,22 @@ hook_session_start() {
   cwd="$(json_field "$input" cwd)"
   root="$(project_root "${cwd:-${CLAUDE_PROJECT_DIR:-$PWD}}")"
   message="$(take_notices "$root")"
+  if [ "$(json_field "$input" source)" = "startup" ] || [ -z "$(json_field "$input" source)" ]; then
+    local recap
+    recap="$(
+      set_project "$root"
+      [ -d "$JOURNAL" ] && [ ! -f "$JOURNAL/.paused" ] && [ "$root" != "$HOME_P" ] && last_time_line
+    )"
+    [ -n "$recap" ] && message="$recap${message:+
+$message}"
+  fi
+  # Commands Claude runs in this session see the project's port as PORT, which
+  # most web servers use by themselves.
+  if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
+    local port
+    port="$(set_project "$root"; project_port)"
+    [ -n "$port" ] && echo "export PORT=$port" >>"$CLAUDE_ENV_FILE"
+  fi
   if [ -n "$message" ] && ctx_json="$(printf '%s' "$context" | json_string)" && msg_json="$(printf '%s' "$message" | json_string)"; then
     printf '{"systemMessage":%s,"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":%s}}\n' "$msg_json" "$ctx_json"
   else
@@ -207,7 +292,7 @@ EOF
 
   set_project "$(project_root "$cwd")"
 
-  if [ "$ROOT" = "$HOME" ] || [ "$ROOT" = "$(projects_dir)" ]; then
+  if [ "$ROOT" = "$HOME_P" ] || [ "$ROOT" = "$(projects_dir)" ]; then
     echo "## Their projects, most recent first"
     echo
     cmd_list 2>/dev/null | head -60
@@ -336,11 +421,11 @@ $(cat "$SESSIONS/$(__sanitize "$session")")"
 
   count=$(printf '%s\n' "$roots" | grep -c .)
   [ "$count" -gt 1 ] && others="yes"
-  [ "$(project_root "$cwd")" = "$HOME" ] && others="yes"
+  [ "$(project_root "$cwd")" = "$HOME_P" ] && others="yes"
 
   while IFS= read -r root; do
     [ -n "$root" ] || continue
-    [ "$root" = "$HOME" ] && continue
+    [ "$root" = "$HOME_P" ] && continue
     jobs="$jobs$(prepare_curation "$root" "$transcript" "$session" "$size" "$others")
 "
   done <<EOF

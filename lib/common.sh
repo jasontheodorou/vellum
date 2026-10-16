@@ -39,16 +39,16 @@ json_field() {
 }
 
 # The project root: the git top level if there is one, otherwise the directory.
-# Climbs with --show-cdup rather than using --show-toplevel, so the path keeps
-# the same form as the shell's (on macOS, /var rather than /private/var).
+# Always the resolved path (pwd -P), the form Claude Code reports, so the same
+# folder is never mistaken for two (on macOS, /tmp is really /private/tmp).
 project_root() {
   local dir="${1:-$PWD}" up
   if command -v git >/dev/null 2>&1; then
     up=$(cd "$dir" 2>/dev/null && git rev-parse --show-cdup 2>/dev/null) && {
-      (cd "$dir/$up" 2>/dev/null && pwd) && return 0
+      (cd "$dir/$up" 2>/dev/null && pwd -P) && return 0
     }
   fi
-  (cd "$dir" 2>/dev/null && pwd) || echo "$dir"
+  (cd "$dir" 2>/dev/null && pwd -P) || echo "$dir"
 }
 
 # Print a file's body without its YAML frontmatter.

@@ -8,6 +8,10 @@ Terminal Scribe is now a Claude Code plugin.
 
 ### Added
 
+- A quiet status line: the project's name in its own colour, plus the server, branch, unpushed commits or a paused journal only when they need attention.
+- At the start of a session in a project, one line says what happened last time and what is next.
+- One line at the start of the next session says what the curator changed.
+- Each project's port is given to Claude and set as `PORT` for its commands, so servers start on the right port.
 - Projects in plain English: start, open, list, rename, close, reopen and add projects. Each gets a folder in `~/projects`, git, a README, a journal and a port.
 - Search every project's journal ("have I dealt with drainage before?"), and a digest of the week across projects.
 - Checks before pushing code (passwords, keys, `.env` files, large files, a tracked journal), and publishing to GitHub.

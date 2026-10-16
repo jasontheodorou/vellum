@@ -152,7 +152,7 @@ start_hook() {
   printf -- '# 2026-04-30\nLOGBOOK BODY\n' > "$PROJECT_DIR/.scribe/logbook/2026-04-30.md"
   run start_hook
   [[ "$output" == *"A calm life dashboard."* ]]
-  [[ "$output" != *"LOGBOOK BODY"* ]]
+  [[ "$output" != *"Most recent logbook entry"* ]]
 }
 
 @test "session-start: shows preferences and lesson titles, not lesson bodies" {

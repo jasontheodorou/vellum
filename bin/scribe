@@ -21,6 +21,10 @@ GLOBAL_LOG="$SCRIBE_HOME/scribe.log"
 REGISTRY="$SCRIBE_HOME/projects.tsv"
 SESSIONS="$SCRIBE_HOME/sessions"
 
+# The home folder with any symbolic links resolved. Folder paths are always
+# compared in this resolved form, because Claude Code reports them that way.
+HOME_P="$(cd "$HOME" 2>/dev/null && pwd -P || echo "$HOME")"
+
 # Set per project by set_project; these are the defaults.
 JOURNAL_NAME=".scribe"
 LESSONS="lessons.md"

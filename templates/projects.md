@@ -7,7 +7,7 @@ Terminal Scribe manages this person's projects and keeps a journal for each one.
 Projects:
 
 - "start a new project called X" (perhaps "for Y"): `scribe new "X" --about "Y" --session {{SESSION}}`. Then `cd` into the folder it prints and work there.
-- "open X", "let's work on X", "go to X": `scribe open "X" --session {{SESSION}}`, then `cd` into the folder it prints. It prints the project's journal; use it to say where things stand.
+- "open X", "let's work on X", "go to X": `scribe open "X" --session {{SESSION}}`, then `cd` into the folder it prints. It prints the project's journal. Reply with one line on what happened last time and one on what is next, then stop and let them lead.
 - "what projects do I have?", "list my projects": `scribe list`. Add `--all` to include closed ones.
 - "rename X to Y": `scribe rename "X" "Y"`.
 - "close X", "we're done with X": confirm first, then `scribe close "X"`. It saves a final archive to the desktop and keeps the folder.

@@ -66,6 +66,13 @@ Every project gets a journal. While you work, Claude notes what happens. When yo
 
 Claude reads the overview, your preferences and the index whenever you open a project, so it picks up where you left off without being told.
 
+## Small things that just happen
+
+- **Last time.** When you start Claude in a project, one line reminds you where you were, such as "Last time, 16 Oct: chose raised beds. Next: confirm bed sizes."
+- **Journal updates.** If the curator changed a journal after your last session, one line says what, such as "sanctum: 1 decision, lessons and the overview."
+- **The right port.** Every project has its own port, and Claude uses it when it starts the project's server, so two projects never clash.
+- **The status line.** The bottom line shows the project's name next to a dot in its own colour. It adds more only when something needs your attention: the server is live, you are on a side branch, commits are waiting to be pushed, or the journal is paused. To turn it on, add `"statusLine": {"type": "command", "command": "scribe statusline"}` to `~/.claude/settings.json`, or ask Claude to do it.
+
 Claude Code remembers some facts about you, and git remembers what changed. Neither keeps the reasons, the options you turned down, what failed or what you said when you saw the result. The journal keeps all of that.
 
 ## Where things are kept

@@ -207,7 +207,7 @@ cmd_init() {
     return 0
   fi
 
-  if [ "$ROOT" = "$HOME" ]; then
+  if [ "$ROOT" = "$HOME_P" ]; then
     die "your home folder cannot have a journal. Open Claude in a project folder instead."
   fi
   if has_legacy_journal "$ROOT"; then

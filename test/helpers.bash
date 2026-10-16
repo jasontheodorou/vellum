@@ -6,7 +6,7 @@ SCRIBE_REPO="${SCRIBE_REPO:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 SCRIBE_BIN="$SCRIBE_REPO/bin/scribe"
 
 setup_isolated_env() {
-  TEST_HOME="$(cd "$(mktemp -d "${TMPDIR:-/tmp}/scribe-test.XXXXXX")" && pwd)"
+  TEST_HOME="$(cd "$(mktemp -d "${TMPDIR:-/tmp}/scribe-test.XXXXXX")" && pwd -P)"
   export HOME="$TEST_HOME" TEST_HOME
   unset SCRIBE_HOME SCRIBE_SUBAGENT CLAUDE_JOURNAL_HOOK CLAUDE_PROJECT_DIR
   export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
@@ -23,6 +23,12 @@ setup_isolated_env() {
 }
 
 teardown_isolated_env() {
+  # Let any background curator finish before deleting its folder.
+  local _
+  for _ in $(seq 1 50); do
+    [ -z "$(find "${TEST_HOME:-/nonexistent}" -type d -name lock -path '*/.state/*' 2>/dev/null)" ] && break
+    sleep 0.1
+  done
   if [ -n "${TEST_HOME:-}" ] && [ -d "$TEST_HOME" ]; then
     rm -rf "$TEST_HOME"
   fi

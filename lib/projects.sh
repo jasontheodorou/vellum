@@ -16,7 +16,9 @@ TAB="$(printf '\t')"
 # ---------------------------------------------------------------------------
 
 projects_dir() {
-  config_get projects-dir "$HOME/projects"
+  local dir
+  dir="$(config_get projects-dir "$HOME/projects")"
+  (cd "$dir" 2>/dev/null && pwd -P) || echo "$dir"
 }
 
 reg_ensure() {
@@ -32,8 +34,10 @@ reg_line() {
 
 # Print the name registered for a folder, or nothing.
 reg_name_for_path() {
+  local p
   [ -f "$REGISTRY" ] || return 0
-  awk -F'\t' -v p="$1" '$2 == p {print $1; exit}' "$REGISTRY"
+  p="$( (cd "$1" 2>/dev/null && pwd -P) || echo "$1")"
+  awk -F'\t' -v p="$p" '$2 == p {print $1; exit}' "$REGISTRY"
 }
 
 field() {
@@ -243,6 +247,7 @@ cmd_new() {
   [ -e "$dir" ] && die "$dir already exists. Say 'add $name to my projects' to use it."
 
   mkdir -p "$dir"
+  dir="$(cd "$dir" && pwd -P)"
   (cd "$dir" && git init -q 2>/dev/null) || true
   {
     echo "# $name"
@@ -400,7 +405,7 @@ cmd_adopt() {
   fi
   dir="$(project_root "${dir:-$PWD}")"
   [ -d "$dir" ] || die "there is no folder at $dir"
-  [ "$dir" = "$HOME" ] && die "your home folder cannot be a project"
+  [ "$dir" = "$HOME_P" ] && die "your home folder cannot be a project"
 
   existing="$(reg_name_for_path "$dir")"
   if [ -n "$existing" ]; then
@@ -608,8 +613,10 @@ cmd_publish() {
 
 # The registered project that contains a folder: the longest matching path.
 reg_name_containing() {
+  local d
   [ -f "$REGISTRY" ] || return 0
-  awk -F'\t' -v d="$1/" 'index(d, $2 "/") == 1 && length($2) > best {best = length($2); name = $1} END {if (name != "") print name}' "$REGISTRY"
+  d="$( (cd "$1" 2>/dev/null && pwd -P) || echo "$1")"
+  awk -F'\t' -v d="$d/" 'index(d, $2 "/") == 1 && length($2) > best {best = length($2); name = $1} END {if (name != "") print name}' "$REGISTRY"
 }
 
 # Each project gets its own colour, the same every time.
@@ -661,7 +668,7 @@ cmd_statusline() {
     # Not on the list: a project kit folder, or any folder with a journal.
     root="$(project_root "$cwd")"
     set_project "$root"
-    [ "$root" != "$HOME" ] || return 0
+    [ "$root" != "$HOME_P" ] || return 0
     case "$root/" in "$(projects_dir)"/*) ;; *) [ -d "$JOURNAL" ] || return 0 ;; esac
     dir="$root"
     name="$(basename "$root")"
