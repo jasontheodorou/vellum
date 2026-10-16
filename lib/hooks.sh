@@ -108,11 +108,80 @@ looks_like_project() {
   return 1
 }
 
-# Prints context for Claude at the start of every session. Plain stdout from a
-# SessionStart hook is added to Claude's context.
+# What changed in a journal since a marker file was made, in a few words, such
+# as "1 decision, lessons and the overview". Prints nothing if nothing changed.
+journal_changes() {
+  local journal="$1" marker="$2" n parts="" last=""
+  add_part() { if [ -n "$last" ]; then parts="${parts:+$parts, }$last"; fi; last="$1"; }
+  n=$(find "$journal/decisions" -name '*.md' -newer "$marker" 2>/dev/null | grep -c .)
+  [ "$n" -gt 0 ] && add_part "$n decision$( [ "$n" -gt 1 ] && echo s)"
+  n=$(find "$journal/experiments" -name '*.md' -newer "$marker" 2>/dev/null | grep -c .)
+  [ "$n" -gt 0 ] && add_part "$n experiment$( [ "$n" -gt 1 ] && echo s)"
+  [ -n "$(find "$journal/$LESSONS" -newer "$marker" 2>/dev/null)" ] && add_part "lessons"
+  [ -n "$(find "$journal/preferences.md" -newer "$marker" 2>/dev/null)" ] && add_part "preferences"
+  [ -n "$(find "$journal/weekly" -name '*.md' -newer "$marker" 2>/dev/null)" ] && add_part "a weekly round-up"
+  [ -n "$(find "$journal/overview.md" -newer "$marker" 2>/dev/null)" ] && add_part "the overview"
+  if [ -n "$parts" ]; then
+    echo "$parts and $last"
+  else
+    echo "$last"
+  fi
+}
+
+# Leave a one-line message for the next session about what the curator did.
+save_notice() {
+  local root="$1" summary="$2" name
+  [ -n "$summary" ] || return 0
+  name="$(reg_name_for_path "$root")"
+  mkdir -p "$SCRIBE_HOME/notices"
+  printf '%s\n' "${name:-$(basename "$root")}: $summary" >"$SCRIBE_HOME/notices/$(__sanitize "$root")"
+}
+
+# The waiting messages for a project, or for every project from the home
+# folder, joined into one line. Shown once, then deleted.
+take_notices() {
+  local root="$1" f out=""
+  [ -d "$SCRIBE_HOME/notices" ] || return 0
+  for f in "$SCRIBE_HOME"/notices/*; do
+    [ -f "$f" ] || continue
+    if [ "$root" = "$HOME" ] || [ "$root" = "$(projects_dir)" ] || [ "$(basename "$f")" = "$(__sanitize "$root")" ]; then
+      out="${out:+$out; }$(cat "$f")"
+      rm -f "$f"
+    fi
+  done
+  [ -n "$out" ] && echo "Journal updated after your last session. $out."
+}
+
+# Print a JSON string, escaped. Uses jq or python3; fails if neither is there.
+json_string() {
+  if command -v jq >/dev/null 2>&1; then
+    jq -Rs . 2>/dev/null
+  elif command -v python3 >/dev/null 2>&1; then
+    python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))'
+  else
+    return 1
+  fi
+}
+
+# The SessionStart hook. Claude gets the context. The person sees a one-line
+# message if the curator updated a journal since their last session.
 hook_session_start() {
   is_helper_session && return 0
+  local input="" context message cwd root ctx_json msg_json
+  [ -t 0 ] || input="$(cat || true)"
+  context="$(printf '%s' "$input" | session_start_context)"
+  cwd="$(json_field "$input" cwd)"
+  root="$(project_root "${cwd:-${CLAUDE_PROJECT_DIR:-$PWD}}")"
+  message="$(take_notices "$root")"
+  if [ -n "$message" ] && ctx_json="$(printf '%s' "$context" | json_string)" && msg_json="$(printf '%s' "$message" | json_string)"; then
+    printf '{"systemMessage":%s,"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":%s}}\n' "$msg_json" "$ctx_json"
+  else
+    printf '%s\n' "$context"
+  fi
+}
 
+# Prints context for Claude at the start of every session.
+session_start_context() {
   local input="" cwd session name port
   [ -t 0 ] || input="$(cat || true)"
   cwd="$(json_field "$input" cwd)"
@@ -284,7 +353,12 @@ EOF
   (
     printf '%s\n' "$jobs" | while IFS='|' read -r root state size prompt condensed extra_read; do
       set_project "$root"
+      marker="$JOURNAL/.state/started"
+      : >"$marker"
+      sleep 1
       run_curator "$prompt" "$extra_read" >>"$JOURNAL/.state/helper.log" 2>&1 && echo "$size" >"$state"
+      save_notice "$ROOT" "$(journal_changes "$JOURNAL" "$marker")"
+      rm -f "$marker"
       build_index "$JOURNAL"
       rm -rf "$JOURNAL/.state/lock" "$prompt" ${condensed:+"$condensed"}
     done

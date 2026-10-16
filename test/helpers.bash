@@ -56,7 +56,7 @@ FAKE
 # Wait up to two seconds for a file to appear (the session-end helper runs in the background).
 wait_for_file() {
   local _
-  for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+  for _ in $(seq 1 50); do
     [ -f "$1" ] && return 0
     sleep 0.1
   done
