@@ -198,12 +198,20 @@ journal_changes() {
 }
 
 # Leave a one-line message for the next session about what the curator did.
+# $2 is what changed; $3 is "failed" if the curator did not finish.
 save_notice() {
-  local root="$1" summary="$2" name
-  [ -n "$summary" ] || return 0
+  local root="$1" summary="$2" outcome="${3:-}" name text
   name="$(reg_name_for_path "$root")"
+  name="${name:-$(basename "$root")}"
+  if [ "$outcome" = "failed" ]; then
+    text="The curator could not update $name's journal after your last session. Say \"tidy the journal\" in $name to try again."
+  elif [ -n "$summary" ]; then
+    text="Journal updated after your last session: $name, $summary. Say \"undo the journal update\" to reverse it."
+  else
+    return 0
+  fi
   mkdir -p "$SCRIBE_HOME/notices"
-  printf '%s\n' "${name:-$(basename "$root")}: $summary" >"$SCRIBE_HOME/notices/$(__sanitize "$root")"
+  printf '%s\n' "$text" >"$SCRIBE_HOME/notices/$(__sanitize "$root")"
 }
 
 # The waiting messages for a project, or for every project from the home
@@ -214,11 +222,12 @@ take_notices() {
   for f in "$SCRIBE_HOME"/notices/*; do
     [ -f "$f" ] || continue
     if [ "$root" = "$HOME_P" ] || [ "$root" = "$(projects_dir)" ] || [ "$(basename "$f")" = "$(__sanitize "$root")" ]; then
-      out="${out:+$out; }$(cat "$f")"
+      out="${out:+$out
+}$(cat "$f")"
       rm -f "$f"
     fi
   done
-  [ -n "$out" ] && echo "Journal updated after your last session. $out."
+  [ -n "$out" ] && echo "$out"
 }
 
 # Print a JSON string, escaped. Uses jq or python3; fails if neither is there.
@@ -442,11 +451,16 @@ EOF
   (
     printf '%s\n' "$jobs" | while IFS='|' read -r root state size prompt condensed extra_read; do
       set_project "$root"
+      snapshot_journal
       marker="$JOURNAL/.state/started"
       : >"$marker"
       sleep 1
-      run_curator "$prompt" "$extra_read" >>"$JOURNAL/.state/helper.log" 2>&1 && echo "$size" >"$state"
-      save_notice "$ROOT" "$(journal_changes "$JOURNAL" "$marker")"
+      if run_curator "$prompt" "$extra_read" >>"$JOURNAL/.state/helper.log" 2>&1; then
+        echo "$size" >"$state"
+        save_notice "$ROOT" "$(journal_changes "$JOURNAL" "$marker")"
+      else
+        save_notice "$ROOT" "" failed
+      fi
       rm -f "$marker"
       build_index "$JOURNAL"
       rm -rf "$JOURNAL/.state/lock" "$prompt" ${condensed:+"$condensed"}

@@ -61,9 +61,9 @@ message_for() {
 
 @test "recap: sits above the curator's message when both are waiting" {
   mkdir -p "$HOME/.scribe/notices"
-  echo "garden: 1 decision" > "$HOME/.scribe/notices/$("$SCRIBE_BIN" __sanitize "$P/garden")"
+  echo "Journal updated after your last session: garden, 1 decision." > "$HOME/.scribe/notices/$("$SCRIBE_BIN" __sanitize "$P/garden")"
   msg="$(message_for "$P/garden")"
-  [[ "$msg" == "Last time, 16 Oct:"*$'\n'"Journal updated after your last session. garden: 1 decision." ]]
+  [[ "$msg" == "Last time, 16 Oct:"*$'\n'"Journal updated after your last session: garden, 1 decision." ]]
 }
 
 @test "port: Claude is told the project's port" {

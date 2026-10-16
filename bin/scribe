@@ -66,6 +66,7 @@ Journal
   scribe status              Is journaling on, and what is in the journal
   scribe pause | resume      Stop and restart journal writes
   scribe curate              Tidy and reorganise the journal now
+  scribe undo                Undo the curator's last update to the journal
   scribe archive             Save a summary of the project to your desktop
   scribe library             List archived projects
   scribe link | unlink NAME  Load (or stop loading) an archived project's lessons
@@ -105,6 +106,7 @@ main() {
     resume)             cmd_resume "$@" ;;
     archive)            cmd_archive "$@" ;;
     curate)             cmd_curate "$@" ;;
+    undo)               cmd_undo "$@" ;;
     index)              cmd_index "$@" ;;
     library)            cmd_library "$@" ;;
     link)               cmd_link "$@" ;;

@@ -411,10 +411,40 @@ EOF
   echo "  library: $lib_out"
 }
 
+# Save the journal as it is now, before the curator changes it. Keeps the ten
+# most recent. Artefacts are left out: the curator does not edit them, and
+# they can be large.
+snapshot_journal() {
+  local dir="$JOURNAL/.state/snapshots" stamp
+  mkdir -p "$dir"
+  stamp="$(date '+%Y-%m-%d-%H%M%S')"
+  (cd "$JOURNAL" && tar -czf "$dir/$stamp.tgz" --exclude './.state' --exclude './artefacts' --exclude './.paused' . 2>/dev/null) || return 0
+  ls -1 "$dir"/*.tgz 2>/dev/null | grep -v -- '-before-undo\.tgz$' | sort -r | tail -n +11 | while IFS= read -r old; do rm -f "$old"; done
+}
+
+# Put the journal back as it was before the most recent curator run. The
+# current version is saved first, so an undo can itself be undone by hand.
+cmd_undo() {
+  require_journal
+  local dir="$JOURNAL/.state/snapshots" latest when
+  latest="$(ls -1 "$dir"/*.tgz 2>/dev/null | grep -v -- '-before-undo\.tgz$' | sort | tail -1)"
+  [ -n "$latest" ] || die "there is nothing to undo: the curator has not changed this journal yet"
+  (cd "$JOURNAL" && tar -czf "$dir/$(date '+%Y-%m-%d-%H%M%S')-before-undo.tgz" --exclude './.state' --exclude './artefacts' --exclude './.paused' .)
+  # Remove everything the snapshot covers, then unpack it.
+  find "$JOURNAL" -mindepth 1 -maxdepth 1 ! -name '.state' ! -name 'artefacts' ! -name '.paused' -exec rm -rf {} +
+  (cd "$JOURNAL" && tar -xzf "$latest")
+  when="$(basename "$latest" .tgz | awk -F- '{printf "%s-%s-%s at %s:%s", $1, $2, $3, substr($4, 1, 2), substr($4, 3, 2)}')"
+  rm -f "$latest"
+  build_index "$JOURNAL"
+  echo "The journal is back as it was on $when, before the curator's last update."
+  echo "The version you just replaced is saved in $JOURNAL_NAME/.state/snapshots/ if you need it."
+}
+
 cmd_curate() {
   require_journal
   command -v claude >/dev/null 2>&1 || die "Claude Code is not on PATH, so the curator cannot run"
   local prompt_file
+  snapshot_journal
   prompt_file="$(mktemp)"
   write_curator_prompt "There is no new session to record, so skip step 2. Tidy the journal that is already there: turn decisions, experiments, lessons and preferences buried in the logbook into proper entries (step 3), then carry out step 4." "$prompt_file"
   echo "Curating the journal. This can take a minute or two."

@@ -24,6 +24,7 @@ When the person asks what was decided, learned or done ("what did we decide abou
 - "pause journaling": `scribe pause`. "resume journaling": `scribe resume`.
 - "is journaling on?": `scribe status`.
 - "tidy the journal", "curate the journal now": `scribe curate`. It takes a minute or two.
+- "undo the journal update": `scribe undo`. It restores the journal to how it was before the curator's last run.
 - "archive this project", "write it up for a stakeholder": `scribe archive`, then say where the file was saved.
 - "bring in what we learned on project X": `scribe link X`. To undo: `scribe unlink X`.
 - "stop the background curator": `scribe config background off`. To restart it: `scribe config background on`.
