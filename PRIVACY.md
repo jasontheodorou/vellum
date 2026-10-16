@@ -14,6 +14,21 @@ When journaling is on for a project, Claude writes notes about your sessions int
 
 Claude is told never to copy passwords, API keys, tokens or personal data into the journal, and to describe them instead. That is an instruction to Claude, not a guarantee, so look through a journal before you share it.
 
+## The project list and session notes
+
+- `~/.scribe/projects.tsv` lists each project's name, folder, port, status and the dates it was started and closed.
+- While a session runs, `~/.scribe/sessions/` notes which project folders it opened, so the curator knows which journals to organise. Each note is deleted when the session ends.
+
+## Changes outside the journal
+
+Terminal Scribe changes files outside a journal only when you ask:
+
+- "Start a new project" creates the folder, a README, a `.gitignore` and a git repository.
+- "Rename" moves the project's folder.
+- "Add this folder to my projects", in a project made by the earlier project kit, removes the kit's two hooks from that project's `.claude/settings.json` (keeping `settings.json.kit-backup`) and moves its weekly job to `~/.scribe/retired/`.
+- "Stop X" stops the program serving that project's port.
+- "Put this on GitHub" creates a repository on your GitHub account and pushes to it.
+
 ## Who can see it
 
 - **Git.** The journal is listed in `.git/info/exclude`, which only exists on your computer. It is never committed, and your team's `.gitignore` is not changed.

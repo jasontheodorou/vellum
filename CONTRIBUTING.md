@@ -9,15 +9,20 @@ Thank you for helping. Bug reports, ideas and pull requests are all welcome.
 | `.claude-plugin/plugin.json` | The plugin's name, version and description |
 | `.claude-plugin/marketplace.json` | Lets people install the plugin from this repository |
 | `hooks/hooks.json` | Runs `scribe hook session-start` and `scribe hook session-end` |
-| `bin/scribe` | Every command and both hooks, in one bash script |
-| `templates/instructions.md` | What Claude is told at the start of a session |
+| `bin/scribe` | The command Claude runs. It loads the files in `lib/` |
+| `lib/common.sh` | Shared helpers, settings and which folder holds a project's journal |
+| `lib/journal.sh` | The journal: starter files, the index, the curator and journal commands |
+| `lib/projects.sh` | The project list and the project commands |
+| `lib/hooks.sh` | What Claude is told when a session starts, and the curator run when it ends |
+| `templates/projects.md` | What Claude is told in every session about handling projects |
+| `templates/instructions.md` | What Claude is told about keeping a project's journal |
 | `templates/curator.md` | What the curator is told at the end of a session |
 | `templates/condense.jq` | Shrinks a session record for the curator (the script has a Python copy for computers without jq) |
 | `templates/journal-seed/` | The files a new journal starts with |
 | `skills/` | The `/terminal-scribe:` slash commands |
 | `test/` | Automated tests, and the manual test in `SMOKE-TEST.md` |
 
-`bin/scribe` must run on bash 3.2, which is the version macOS ships. That means no associative arrays, no `${var,,}` and no `mapfile`.
+The scripts must run on bash 3.2, which is the version macOS ships. That means no associative arrays, no `${var,,}` and no `mapfile`.
 
 ## Running the plugin from your copy
 
@@ -33,7 +38,7 @@ Install [bats](https://github.com/bats-core/bats-core) and [ShellCheck](https://
 
 ```
 bats test/
-shellcheck -S warning bin/scribe test/helpers.bash
+shellcheck -x -P SCRIPTDIR -S warning bin/scribe test/helpers.bash
 claude plugin validate . --strict
 ```
 
@@ -46,7 +51,7 @@ In a bats test, write `refute grep ...` rather than `! grep ...`. Bats ignores a
 - Add or change a test for what you changed.
 - Update `CHANGELOG.md` under the unreleased version.
 - Run the manual test in `test/SMOKE-TEST.md` if you changed a hook, the instructions or the curator.
-- If you change `templates/condense.jq`, make the same change to the Python copy in `bin/scribe`. A test checks they agree.
+- If you change `templates/condense.jq`, make the same change to the Python copy in `lib/journal.sh`. A test checks they agree.
 - Write anything people will read in plain English, and use short sentences.
 
 ## Releasing

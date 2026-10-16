@@ -36,8 +36,7 @@ check_condensed() {
     p=$(command -v $t) && ln -sf "$p" "$TEST_HOME/nojq/$t"
   done
   # Run the script's own function with jq hidden.
-  sed '/^main "\$@"$/d' "$SCRIBE_BIN" > "$TEST_HOME/lib.sh"
-  PATH="$TEST_HOME/nojq" bash -c "source '$TEST_HOME/lib.sh'; condense_transcript '$FIXTURE' '$TEST_HOME/py.txt'"
+  PATH="$TEST_HOME/nojq" bash -c "TEMPLATES='$SCRIBE_REPO/templates'; source '$SCRIBE_REPO/lib/common.sh'; source '$SCRIBE_REPO/lib/journal.sh'; condense_transcript '$FIXTURE' '$TEST_HOME/py.txt'"
   check_condensed "$TEST_HOME/py.txt"
   diff "$TEST_HOME/jq.txt" "$TEST_HOME/py.txt"
 }

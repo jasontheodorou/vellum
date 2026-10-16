@@ -37,7 +37,7 @@ teardown() { teardown_isolated_env; }
 @test "link rejects a project that is not in the library" {
   run "$SCRIBE_BIN" link nope
   [ "$status" -ne 0 ]
-  [[ "$output" == *"not found in library"* ]]
+  [[ "$output" == *"not on the project list or in the library"* ]]
 }
 
 @test "unlink removes the entry" {

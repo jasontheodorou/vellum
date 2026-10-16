@@ -10,7 +10,7 @@ load helpers
 @test "every hook command points at a script that exists" {
   grep -o '/bin/scribe\\" hook [a-z-]*' "$SCRIBE_REPO/hooks/hooks.json" | while read -r line; do
     sub=${line##* }
-    grep -q "$sub)" "$SCRIBE_REPO/bin/scribe"
+    cat "$SCRIBE_REPO/bin/scribe" "$SCRIBE_REPO"/lib/*.sh | grep -q "$sub)"
   done
   [ -x "$SCRIBE_REPO/bin/scribe" ]
 }
@@ -33,6 +33,6 @@ load helpers
 
 @test "the curator prompt has every placeholder filled in by the script" {
   for ph in $(grep -o '{{[A-Z_]*}}' "$SCRIBE_REPO/templates/curator.md" | sort -u); do
-    case "$ph" in "{{PROJECT}}"|"{{J}}"|"{{TODAY}}"|"{{SESSION_NOTE}}") ;; *) echo "unknown $ph"; return 1 ;; esac
+    case "$ph" in "{{PROJECT}}"|"{{J}}"|"{{LESSONS}}"|"{{TODAY}}"|"{{SESSION_NOTE}}") ;; *) echo "unknown $ph"; return 1 ;; esac
   done
 }

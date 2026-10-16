@@ -9,7 +9,7 @@
     {
       "name": "terminal-scribe",
       "source": "./",
-      "description": "Keeps a plain-English journal of every Claude Code session in a project, so Claude remembers where you left off and what you decided."
+      "description": "Run your projects in plain English: start, open, search, archive and close them, with a curated journal of every decision, experiment, lesson and preference."
     }
   ]
 }

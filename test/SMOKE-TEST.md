@@ -28,11 +28,18 @@ The automated tests use a fake `claude`. This checklist tests the plugin with re
 16. **Not now.** In a fourth project, answer "not now". Start Claude again: it asks again.
 17. **Old journal.** Make a project with a `journal/` folder and a `CLAUDE.md` containing `<!-- scribe-block-begin -->` and `<!-- scribe-block-end -->`. Claude offers to migrate. Say yes and check the result.
 18. **Turn off.** Say "turn off journaling here". Claude asks you to confirm. Confirm, and check `.scribe/` is gone.
-19. **Uninstall.** Run `/plugin uninstall terminal-scribe`. New sessions say nothing about Terminal Scribe. Journals and the library are untouched.
+19. **Start a project.** In your home folder, start Claude and say "start a new project called smoke test for trying things out". Check `~/projects/smoke-test` has git, a README and `.scribe/`, and that it is on the list.
+20. **List and open.** Say "what projects do I have?", then "open smoke test". Claude answers from the journal.
+21. **Search.** Say "have I dealt with X in any other project?", where X is in another project's journal. Claude finds and explains it.
+22. **Rename and close.** Say "rename smoke test to smoke trial", then "we're done with smoke trial". Claude asks before closing, saves a write-up to the desktop, and the project disappears from the list but not from disk.
+23. **Kit projects.** On a machine with the project kit, say "import my projects", then open one. Claude offers to switch it over. Say yes and check `.claude/settings.json` and `~/Library/LaunchAgents`.
+24. **Before pushing.** In a project with commits, say "is it safe to push?".
+25. **Uninstall.** Run `/plugin uninstall terminal-scribe`. New sessions say nothing about Terminal Scribe. Journals and the library are untouched.
 
 ## Results
 
 | Date | Version | System | Result | Notes |
 | --- | --- | --- | --- | --- |
 | 2026-10-16 | 1.0.0 (unreleased) | macOS 26, Claude Code 2.1.301 | Partial pass | Steps 2 (detection only), 3, 4, 6 and 12 run with `--plugin-dir` in headless mode. The helper could not write outside `.scribe/`, change README.md or run commands. |
+| 2026-10-16 | 1.0.0 (unreleased) | macOS 26, Claude Code 2.1.301 | Pass | Steps 19 to 21 in headless mode with a throwaway project list. "Start a new project called garden planner" created the project, wrote a file and recorded a decision; the curator then rewrote the overview in 33 seconds. "Have I dealt with drainage in any other project?" found and explained a decision in another project. |
 | 2026-10-16 | 1.0.0 (unreleased) | macOS 26, Claude Code 2.1.301 | Pass | Step 6 with the curator, on a copy of a real project journal and a real 20 MB session (condensed to 41 KB). Took 141 seconds. It wrote the logbook, 2 decisions, 2 experiments, 6 lessons, preferences and 3 terms, marked 6 decisions as replaced and rewrote the overview. |

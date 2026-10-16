@@ -8,6 +8,14 @@ Terminal Scribe is now a Claude Code plugin.
 
 ### Added
 
+- Projects in plain English: start, open, list, rename, close, reopen and add projects. Each gets a folder in `~/projects`, git, a README, a journal and a port.
+- Search every project's journal ("have I dealt with drainage before?"), and a digest of the week across projects.
+- Checks before pushing code (passwords, keys, `.env` files, large files, a tracked journal), and publishing to GitHub.
+- "What's running?" and "stop X" for projects with a local web server.
+- Link a live project, not only an archived one, so its overview and lessons load in another project.
+- Works with projects from the earlier project kit: `import-kit` brings them in with their ports, their `design-journal/` and training manual are used as they are, and adopting one retires the kit's own hooks and weekly job.
+- Claude gets the project instructions in every session, wherever it starts, and the project list when it starts in the home folder.
+- The curator organises every project a session worked on, not only the folder it started in.
 - A curator runs when each session ends. It records the session, pulls out decisions, experiments, lessons, preferences and terms, marks replaced decisions, rewrites the overview and writes a weekly round-up.
 - The curator reads a condensed copy of the session, about a hundredth of the size of the full record.
 - New journal files: `overview.md`, `preferences.md`, `INDEX.md` (rebuilt automatically from each entry's summary), `weekly/` and `artefacts/`.

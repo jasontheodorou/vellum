@@ -6,7 +6,7 @@ Your job is to turn the session into a well-organised, plain-English record that
 
 ## 1. Get your bearings
 
-Read ./{{J}}/overview.md, ./{{J}}/INDEX.md and today's logbook if it exists. Look at the headings in ./{{J}}/lessons.md and ./{{J}}/preferences.md. Open other entries only when you need them, for example to check whether a decision already exists.
+Read ./{{J}}/overview.md, ./{{J}}/INDEX.md and today's logbook if it exists. Look at the headings in ./{{J}}/{{LESSONS}} and ./{{J}}/preferences.md. Open other entries only when you need them, for example to check whether a decision already exists.
 
 ## 2. Record the session in the logbook
 
@@ -27,7 +27,7 @@ Only create an entry when the session really produced one.
 
 - **Decision**, at ./{{J}}/decisions/NNN-slug.md. A choice that shapes future work, not something mentioned in passing. List the folder first and use the next number after the highest one. Headings: Context, Options considered, Decision, Why, Consequences (bad ones too), and Checks if it was tested. If it replaces earlier decisions, set each old entry's `status: superseded` and add `superseded_by: <new id>`, and say in the new entry what it replaces.
 - **Experiment**, at ./{{J}}/experiments/{{TODAY}}-slug.md. Something was tried to find something out. Headings: Hypothesis, Approach, Result, Conclusion. Failures and dead ends matter most, because they stop the same mistake being made twice.
-- **Lesson**, in ./{{J}}/lessons.md. Something true beyond this project. Ask: "would someone joining in six months thank me for this?" Put it under a `## Topic` heading, reusing an existing topic where one fits. Start it with `### Lesson:`, `### Insight:`, `### Technique:` or `### Pattern:` and a title that states the point. Write it so it makes sense without the session: the advice, the reason, and the sign that you are getting it wrong. End with the id of the entry it came from. If a similar one exists, improve it instead of adding another.
+- **Lesson**, in ./{{J}}/{{LESSONS}}. Something true beyond this project. Ask: "would someone joining in six months thank me for this?" Put it under a `## Topic` heading, reusing an existing topic where one fits. Start it with `### Lesson:`, `### Insight:`, `### Technique:` or `### Pattern:` and a title that states the point. Write it so it makes sense without the session: the advice, the reason, and the sign that you are getting it wrong. End with the id of the entry it came from. If a similar one exists, improve it instead of adding another.
 - **Preference**, in ./{{J}}/preferences.md. What the person liked, rejected or asked for every time: taste, wording, process, tools. Put it under a `## Topic` heading. Quote their words with the date, and say what it means in practice, such as "Wants one column, top to bottom. Rejected split screens twice (2026-10-03: 'too busy')". Update an existing preference when they change their mind, and say so.
 - **Term**, in ./{{J}}/glossary.md. A word with a special meaning in this project, defined in one or two sentences anyone could follow.
 
@@ -38,7 +38,7 @@ Only create an entry when the session really produced one.
 - Every entry starts with YAML frontmatter: `id`, `type`, `date`, `summary`, `tags`, `status`, `related`. The `summary` is one plain-English sentence that tells a reader what they will learn from the entry. Fill in any field that is missing.
 - Link related entries in both directions with their `id` in `related`.
 - Never delete an entry. Mark it `status: superseded` or `status: outdated` and say why.
-- Keep lessons.md, preferences.md and glossary.md tidy: merge near-duplicates and keep each entry short.
+- Keep {{LESSONS}}, preferences.md and glossary.md tidy: merge near-duplicates and keep each entry short.
 - Do not edit ./{{J}}/INDEX.md. It is rebuilt automatically from the frontmatter.
 - Do not touch files whose names start with a dot.
 

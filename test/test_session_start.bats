@@ -9,11 +9,25 @@ start_hook() {
   hook_input SessionStart "" | "$SCRIBE_BIN" hook session-start
 }
 
-@test "session-start: asks to turn on when there is no journal" {
+@test "session-start: offers to add a git repository without a journal" {
+  make_git_repo
   run start_hook
   [ "$status" -eq 0 ]
-  [[ "$output" == *"not yet turned on"* ]]
-  [[ "$output" == *"/bin/scribe\" init"* ]]
+  [[ "$output" == *"not one of their projects yet"* ]]
+  [[ "$output" == *"/bin/scribe\" adopt --session sess-1"* ]]
+}
+
+@test "session-start: does not offer for a folder that is not a project" {
+  run start_hook
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"not one of their projects yet"* ]]
+}
+
+@test "session-start: always explains the project commands, with the session id" {
+  run start_hook
+  [[ "$output" == *"projects in plain English"* ]]
+  [[ "$output" == *"--session sess-1"* ]]
+  [[ "$output" != *"{{"* ]]
 }
 
 @test "session-start: uses cwd from the hook input, not the shell's folder" {
@@ -23,22 +37,28 @@ start_hook() {
   [[ "$output" == *"keeping a journal"* ]]
 }
 
-@test "session-start: silent after a decline" {
+@test "session-start: no offer after a decline" {
+  make_git_repo
   "$SCRIBE_BIN" init --decline
   run start_hook
   [ "$status" -eq 0 ]
-  [ -z "$output" ]
+  [[ "$output" != *"not one of their projects yet"* ]]
 }
 
 @test "session-start: honours the old .scribe-declined marker" {
+  make_git_repo
   touch "$PROJECT_DIR/.scribe-declined"
   run start_hook
-  [ -z "$output" ]
+  [[ "$output" != *"not one of their projects yet"* ]]
 }
 
-@test "session-start: silent in the home folder" {
+@test "session-start: in the home folder, lists the projects" {
+  "$SCRIBE_BIN" new garden --about "A garden planner." >/dev/null
   PROJECT_DIR="$HOME" run start_hook
-  [ -z "$output" ]
+  [[ "$output" == *"Their projects, most recent first"* ]]
+  [[ "$output" == *"garden"* ]]
+  [[ "$output" == *"A garden planner."* ]]
+  [[ "$output" != *"not one of their projects yet"* ]]
 }
 
 @test "session-start: paused notice" {

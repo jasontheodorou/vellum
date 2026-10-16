@@ -7,8 +7,9 @@ teardown() { teardown_isolated_env; }
 
 @test "config: defaults" {
   run "$SCRIBE_BIN" config
-  [[ "$output" == *"background = on"* ]]
-  [[ "$output" == *"model      = default"* ]]
+  [[ "$output" == *"background   = on"* ]]
+  [[ "$output" == *"model        = default"* ]]
+  [[ "$output" == *"projects-dir = $HOME/projects"* ]]
 }
 
 @test "config: background off and on" {
