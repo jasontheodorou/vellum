@@ -641,12 +641,18 @@ port_running_cached() {
 # when it needs attention: the server is running, the branch is not the main
 # one, commits are waiting to be pushed, or the journal is paused.
 cmd_statusline() {
-  local input="" cwd name line dir port root colour out branch ahead
+  local input="" cwd session name line dir port root colour out branch ahead
   [ -t 0 ] || input="$(cat || true)"
   cwd="$(json_field "$input" cwd)"
   [ -n "$cwd" ] || cwd="$PWD"
 
   name="$(reg_name_containing "$cwd")"
+  # Claude sometimes looks in other folders. Stay on the last project this
+  # session worked in, so the name does not flicker away.
+  session="$(json_field "$input" session_id)"
+  if [ -z "$name" ] && [ -n "$session" ] && [ -f "$SESSIONS/$(__sanitize "$session")" ]; then
+    name="$(reg_name_containing "$(tail -1 "$SESSIONS/$(__sanitize "$session")")")"
+  fi
   if [ -n "$name" ]; then
     line="$(reg_line "$name")"
     dir="$(field "$line" 2)"
@@ -662,6 +668,7 @@ cmd_statusline() {
     port="$(kit_ports | awk -F'\t' -v n="$name" '$1 == n {print $2; exit}')"
   fi
   set_project "$dir"
+  [ -n "$session" ] && [ "$(tail -1 "$SESSIONS/$(__sanitize "$session")" 2>/dev/null)" != "$dir" ] && remember_session "$session" "$dir"
 
   colour="$(project_colour "$name")"
   out="$(printf '\033[38;5;%sm●\033[0m \033[1;38;5;%sm%s\033[0m' "$colour" "$colour" "$name")"

@@ -51,3 +51,11 @@ line_for() {
   [ "$a" = "$b" ]
   [[ "$a" == *$'\033[38;5;'* ]]
 }
+
+@test "statusline: keeps the session's project when Claude looks elsewhere" {
+  "$SCRIBE_BIN" new garden >/dev/null
+  mkdir -p "$HOME/elsewhere"
+  printf '{"cwd":"%s","session_id":"s1"}' "$P/garden" | "$SCRIBE_BIN" statusline >/dev/null
+  out=$(printf '{"cwd":"%s","session_id":"s1"}' "$HOME/elsewhere" | "$SCRIBE_BIN" statusline | sed 's/\x1b\[[0-9;]*m//g')
+  [[ "$out" == "● garden"* ]]
+}
