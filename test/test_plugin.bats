@@ -22,11 +22,17 @@ load helpers
 }
 
 @test "the instructions mention every command Claude may run" {
-  for c in pause resume status archive link "config background off" "off --yes"; do
+  for c in pause resume status curate archive link "config background off" "off --yes"; do
     grep -q "scribe $c" "$SCRIBE_REPO/templates/instructions.md"
   done
 }
 
 @test "no file in the plugin uses an em dash" {
   refute grep -rl $'\xe2\x80\x94' "$SCRIBE_REPO/bin" "$SCRIBE_REPO/templates" "$SCRIBE_REPO/skills" "$SCRIBE_REPO/hooks" "$SCRIBE_REPO/.claude-plugin"
+}
+
+@test "the curator prompt has every placeholder filled in by the script" {
+  for ph in $(grep -o '{{[A-Z_]*}}' "$SCRIBE_REPO/templates/curator.md" | sort -u); do
+    case "$ph" in "{{PROJECT}}"|"{{J}}"|"{{TODAY}}"|"{{SESSION_NOTE}}") ;; *) echo "unknown $ph"; return 1 ;; esac
+  done
 }

@@ -7,7 +7,7 @@ setup() {
   install_fake_claude
   make_git_repo
   "$SCRIBE_BIN" init >/dev/null
-  TRANSCRIPT="$SCRIBE_REPO/test/fixtures/transcript.jsonl"
+  TRANSCRIPT="$SCRIBE_REPO/test/fixtures/session.jsonl"
 }
 teardown() { teardown_isolated_env; }
 
@@ -26,17 +26,36 @@ end_hook() {
   wait_for_file "$PROJECT_DIR/.scribe/.state/sess-1"
   grep -qx "Read,Glob,Grep,Edit,Write" "$TEST_HOME/claude.args"
   grep -qx "dontAsk" "$TEST_HOME/claude.args"
-  grep -qx "Edit(./.scribe/\*\*),Read(/$TRANSCRIPT)" "$TEST_HOME/claude.args"
+  grep -qx "Edit(./.scribe/\*\*)" "$TEST_HOME/claude.args"
   refute grep -q "bypassPermissions" "$TEST_HOME/claude.args"
   refute grep -q "Bash" "$TEST_HOME/claude.args"
   grep -qx "SCRIBE_SUBAGENT=1" "$TEST_HOME/claude.env"
 }
 
-@test "session-end: the prompt names the transcript and forbids secrets" {
+@test "session-end: the curator reads a condensed copy of the session" {
   end_hook "$TRANSCRIPT"
   wait_for_file "$PROJECT_DIR/.scribe/.state/sess-1"
-  grep -q "$TRANSCRIPT" "$TEST_HOME/claude.stdin"
+  grep -q "./.scribe/.state/session-sess-1.txt" "$TEST_HOME/claude.stdin"
+  refute grep -q "$TRANSCRIPT" "$TEST_HOME/claude.stdin"
   grep -q "Never copy passwords" "$TEST_HOME/claude.stdin"
+  refute grep -q "{{" "$TEST_HOME/claude.stdin"
+}
+
+@test "session-end: tidies up the condensed copy and rebuilds the index" {
+  rm -f "$PROJECT_DIR/.scribe/INDEX.md"
+  end_hook "$TRANSCRIPT"
+  wait_for_file "$PROJECT_DIR/.scribe/INDEX.md"
+  sleep 0.2
+  [ ! -f "$PROJECT_DIR/.scribe/.state/session-sess-1.txt" ]
+  [ ! -d "$PROJECT_DIR/.scribe/.state/lock" ]
+}
+
+@test "session-end: falls back to the raw transcript when it cannot be condensed" {
+  old="$SCRIBE_REPO/test/fixtures/transcript.jsonl"
+  end_hook "$old"
+  wait_for_file "$PROJECT_DIR/.scribe/.state/sess-1"
+  grep -qx "Edit(./.scribe/\*\*),Read(/$old)" "$TEST_HOME/claude.args"
+  grep -q "$old" "$TEST_HOME/claude.stdin"
 }
 
 @test "session-end: the helper does not show up in git status" {

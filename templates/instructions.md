@@ -1,30 +1,33 @@
 ## Terminal Scribe is keeping a journal for this project
 
-The journal is in `.scribe/` at the project root. Only this person's computer has it: it is excluded from git, so it is never committed or shared.
+The journal is in `.scribe/` at the project root. It is excluded from git, so it is never committed or shared.
 
 Before any journal write, check that `.scribe/.paused` does not exist. If it does, write nothing to the journal this session.
 
-As you work, keep these files up to date in plain English:
+### While you work
 
-- `.scribe/logbook/YYYY-MM-DD.md` is a running, chronological account of today's session.
-- `.scribe/decisions/NNN-slug.md` records a real decision (Context, Decision, Why, Consequences). Number them in order. Casual discussion is not a decision.
-- `.scribe/lessons.md` holds lessons worth keeping. Ask: "would someone joining this project in six months thank me for this?" Leave out filler.
-- `.scribe/experiments/YYYY-MM-DD-slug.md` records something tried, with its hypothesis and outcome. Include failures.
-- `.scribe/glossary.md` defines words that have a special meaning in this project.
-- A themed file at `.scribe/` (such as `bugs.md`) is fine when a topic keeps coming back.
+When the session ends, a curator reads the conversation and organises everything: the overview, the index, lessons, preferences and the weekly round-up. Your part during the session is to capture things while the detail is fresh:
 
-Start every file with YAML frontmatter: `id`, `type`, `date`, `topic`, `tags`, `status`, `related`.
+- Add to today's logbook, `.scribe/logbook/YYYY-MM-DD.md`, as work happens. Say what was asked, what you did and why, what went wrong and the outcome. Name the files, measurements and commands. Quote the person when they give direction or react to something.
+- When a real decision is made, write `.scribe/decisions/NNN-slug.md` (Context, Options considered, Decision, Why, Consequences). List the folder first and use the next free number.
+- When something is tried to find something out, write `.scribe/experiments/YYYY-MM-DD-slug.md` (Hypothesis, Approach, Result, Conclusion). Failures count most.
+- Before replacing or rolling back something significant, such as a page design, copy the old version into `.scribe/artefacts/YYYY-MM-DD-slug.ext`.
 
-Never copy passwords, API keys, tokens or personal data into the journal. Describe them instead ("rotated the staging API key").
+Start every file with YAML frontmatter: `id`, `type`, `date`, `summary` (one plain-English sentence), `tags`, `status`, `related`. Write in plain English and always say why. Never copy passwords, API keys, tokens or personal data into the journal. Describe them instead.
 
-Write as you go. When the session ends, a background helper reads the conversation and fills in anything you missed.
+### Answering from the journal
 
-When the person asks what was decided, learned or done ("what did we decide about X?", "what did I do yesterday?", "summarise the project"), read the journal and answer in the chat. They should never need to open the files. For "have we faced this before?", also search the archive of past projects at `~/.scribe/library/`.
+When the person asks what was decided, learned or done ("what did we decide about X?", "what did I do yesterday?", "where did we get to?"), start from the overview and the index below, open the entries you need, and answer in the chat. They should never need to open the files. Before suggesting a design or approach, check `.scribe/preferences.md` for what they have already liked or rejected.
+
+For "have we faced this before?", also search the archive of past projects at `~/.scribe/library/`.
+
+### Commands
 
 The person controls the journal in plain English. Run these with Bash. In each one, `scribe` stands for this plugin's copy, `{{SCRIBE_BIN}}`; always type that full path, because another program called `scribe` may come first on the PATH.
 
 - "pause journaling": `scribe pause`. "resume journaling": `scribe resume`.
 - "is journaling on?": `scribe status`.
+- "tidy the journal" or "curate the journal now": `scribe curate`. It takes a minute or two.
 - "archive this project" or "wrap this up": `scribe archive`, then say where the file was saved.
 - "bring in what we learned on project X": `scribe link X`. To undo: `scribe unlink X`.
 - "stop the background helper": `scribe config background off`. To restart it: `scribe config background on`.

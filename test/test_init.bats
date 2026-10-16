@@ -13,6 +13,10 @@ teardown() { teardown_isolated_env; }
   [ -d "$PROJECT_DIR/.scribe/experiments" ]
   [ -f "$PROJECT_DIR/.scribe/lessons.md" ]
   [ -f "$PROJECT_DIR/.scribe/README.md" ]
+  [ -f "$PROJECT_DIR/.scribe/overview.md" ]
+  [ -f "$PROJECT_DIR/.scribe/preferences.md" ]
+  [ -d "$PROJECT_DIR/.scribe/weekly" ]
+  [ -d "$PROJECT_DIR/.scribe/artefacts" ]
 }
 
 @test "init fills in today's date in lessons.md" {

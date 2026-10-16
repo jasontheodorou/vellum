@@ -6,10 +6,11 @@ Terminal Scribe has no server of its own and sends nothing anywhere itself. Ever
 
 When journaling is on for a project, Claude writes notes about your sessions into `.scribe/` in that project:
 
-- a logbook of what happened each day
+- a logbook of what happened each day, quoting what you said
 - decisions and the reasons for them
 - experiments and their results
-- lessons and project vocabulary
+- lessons, project vocabulary and an overview of where the project stands
+- your preferences: what you liked and rejected, in your own words
 
 Claude is told never to copy passwords, API keys, tokens or personal data into the journal, and to describe them instead. That is an instruction to Claude, not a guarantee, so look through a journal before you share it.
 
@@ -19,14 +20,16 @@ Claude is told never to copy passwords, API keys, tokens or personal data into t
 - **Claude.** The journal is read at the start of each session so Claude has the context. Like the rest of your conversation, that text goes to Anthropic under your Claude Code account's terms.
 - **Archives.** An archive is saved to your desktop and copied to `~/.scribe/library/`. Nothing is shared unless you send it to someone.
 
-## The background helper
+## The curator
 
-When a session ends, Terminal Scribe starts Claude once more in the background to fill gaps in the journal. It is limited on purpose:
+When a session ends, Terminal Scribe makes a condensed copy of the session inside `.scribe/.state/`. It keeps what you and Claude said and a one-line note of each action, and leaves out Claude's private reasoning and the output of tools. It then starts Claude once more in the background to organise the journal. That run is limited on purpose:
 
-- it can read the finished session's transcript and the files in the project
+- it can read the condensed session and the files in the project
 - it can only create or change files inside the project's `.scribe/` folder
 - it cannot run commands or use the web
 - anything else it tries is refused automatically
+
+The condensed copy is deleted when the curator finishes. The curator's own run is not saved to your Claude Code session history.
 
 It uses your Claude Code account, so it uses some of your allowance. Turn it off by telling Claude "stop the Terminal Scribe background helper".
 

@@ -15,7 +15,7 @@ The automated tests use a fake `claude`. This checklist tests the plugin with re
 3. **Asked once.** In `/tmp/scribe-smoke`, start Claude. Its first reply asks whether to keep a journal.
 4. **Yes.** Answer yes. Check that `.scribe/` exists, `git status` is clean, and there is no `CLAUDE.md` or `.gitignore`.
 5. **Writing as you go.** Discuss a small decision. Check `.scribe/logbook/<today>.md`, and `.scribe/decisions/001-*.md` if a decision was made.
-6. **Background helper.** Quit Claude. Within a minute or two, `.scribe/.state/helper.log` appears and the logbook covers the whole session.
+6. **Curator.** Quit Claude. Within three minutes `.scribe/.state/helper.log` ends with one line saying what changed. Check that the logbook covers the whole session, `overview.md` is filled in, any decision has Options considered, `preferences.md` quotes you, and `INDEX.md` lists every entry.
 7. **Coming back.** Start Claude again. Ask "where did we get to?". It answers from the journal without opening files you name.
 8. **Pause.** Say "pause journaling". Check `.scribe/.paused` exists. Work a little and quit. Nothing new is written, and the helper does not run.
 9. **Resume.** Say "resume journaling". Check `.scribe/.paused` is gone.
@@ -35,3 +35,4 @@ The automated tests use a fake `claude`. This checklist tests the plugin with re
 | Date | Version | System | Result | Notes |
 | --- | --- | --- | --- | --- |
 | 2026-10-16 | 1.0.0 (unreleased) | macOS 26, Claude Code 2.1.301 | Partial pass | Steps 2 (detection only), 3, 4, 6 and 12 run with `--plugin-dir` in headless mode. The helper could not write outside `.scribe/`, change README.md or run commands. |
+| 2026-10-16 | 1.0.0 (unreleased) | macOS 26, Claude Code 2.1.301 | Pass | Step 6 with the curator, on a copy of a real project journal and a real 20 MB session (condensed to 41 KB). Took 141 seconds. It wrote the logbook, 2 decisions, 2 experiments, 6 lessons, preferences and 3 terms, marked 6 decisions as replaced and rewrote the overview. |

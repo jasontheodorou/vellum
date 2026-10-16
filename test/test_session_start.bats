@@ -57,7 +57,7 @@ start_hook() {
   [[ "$output" == *"keep these files up to date"* ]]
   [[ "$output" == *"Latest session content"* ]]
   [[ "$output" == *"A lesson."* ]]
-  [[ "$output" == *"1 day(s) of logbook"* ]]
+  [[ "$output" == *'`logbook/2026-04-30.md`'* ]]
 }
 
 @test "session-start: fills in the full path to scribe" {
@@ -79,7 +79,7 @@ start_hook() {
   "$SCRIBE_BIN" init >/dev/null
   echo "# Bugs" > "$PROJECT_DIR/.scribe/bugs.md"
   run start_hook
-  [[ "$output" == *".scribe/bugs.md"* ]]
+  [[ "$output" == *'`bugs.md`'* ]]
 }
 
 @test "session-start: loads linked projects' summary and lessons only" {
@@ -124,4 +124,35 @@ start_hook() {
   cd /
   run bash -c "$(declare -f hook_input); PROJECT_DIR='$PROJECT_DIR' hook_input SessionStart '' | PATH='$TEST_HOME/nojq' '$SCRIBE_BIN' hook session-start"
   [[ "$output" == *"keeping a journal"* ]]
+}
+
+@test "session-start: shows the overview once the curator has written it" {
+  "$SCRIBE_BIN" init >/dev/null
+  printf -- '---\nid: overview\n---\n# Overview\n\n## What this is\n\nA calm life dashboard.\n' > "$PROJECT_DIR/.scribe/overview.md"
+  printf -- '# 2026-04-30\nLOGBOOK BODY\n' > "$PROJECT_DIR/.scribe/logbook/2026-04-30.md"
+  run start_hook
+  [[ "$output" == *"A calm life dashboard."* ]]
+  [[ "$output" != *"LOGBOOK BODY"* ]]
+}
+
+@test "session-start: shows preferences and lesson titles, not lesson bodies" {
+  "$SCRIBE_BIN" init >/dev/null
+  printf '\n## Layout\n\n- One column only (2026-10-03: "too busy").\n' >> "$PROJECT_DIR/.scribe/preferences.md"
+  printf '\n## Testing\n\n### Lesson: lists that move under the pointer are unsafe\n\nLESSON BODY\n' >> "$PROJECT_DIR/.scribe/lessons.md"
+  run start_hook
+  [[ "$output" == *"One column only"* ]]
+  [[ "$output" == *"### Lesson: lists that move under the pointer are unsafe"* ]]
+  [[ "$output" != *"LESSON BODY"* ]]
+}
+
+@test "session-start: adds new starter files to an older journal" {
+  "$SCRIBE_BIN" init >/dev/null
+  rm -f "$PROJECT_DIR/.scribe/preferences.md" "$PROJECT_DIR/.scribe/overview.md"
+  rm -rf "$PROJECT_DIR/.scribe/weekly"
+  echo "kept" > "$PROJECT_DIR/.scribe/lessons.md"
+  start_hook >/dev/null
+  [ -f "$PROJECT_DIR/.scribe/preferences.md" ]
+  [ -f "$PROJECT_DIR/.scribe/overview.md" ]
+  [ -d "$PROJECT_DIR/.scribe/weekly" ]
+  grep -qx kept "$PROJECT_DIR/.scribe/lessons.md"
 }

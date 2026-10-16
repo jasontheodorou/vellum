@@ -94,3 +94,19 @@ teardown() { teardown_isolated_env; }
   [ "$status" -eq 0 ]
   grep -q "^### Spaced" "$ARCHIVE"
 }
+
+@test "archive includes the overview and preferences, under its own headings" {
+  printf -- '---\nid: overview\n---\n# Overview\n\n## Where things stand\n\nTwo pages left.\n' > "$J/overview.md"
+  printf '\n## Layout\n\n- One column only.\n' >> "$J/preferences.md"
+  "$SCRIBE_BIN" archive
+  grep -q "^## Where it stands" "$ARCHIVE"
+  grep -q "^### Where things stand" "$ARCHIVE"
+  grep -q "Two pages left." "$ARCHIVE"
+  grep -q "^## Preferences" "$ARCHIVE"
+  grep -q "^### Layout" "$ARCHIVE"
+}
+
+@test "archive leaves out an overview that was never written" {
+  "$SCRIBE_BIN" archive
+  refute grep -q "^## Where it stands" "$ARCHIVE"
+}

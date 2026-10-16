@@ -76,6 +76,12 @@ demote_first_heading() {
   awk '!done && /^# / {sub(/^# /, "### "); done=1} {print}'
 }
 
+# Move every heading down one level, so a file's sections sit inside the
+# archive's own sections.
+demote_headings() {
+  sed 's/^\(#\{1,5\}\) /\1# /'
+}
+
 # Print at most N lines of a file, with a note if it was cut.
 head_with_note() {
   local file="$1" max="$2" total
@@ -234,6 +240,191 @@ require_journal() {
   fi
 }
 
+# Copy any missing starter files and folders into a journal. Never overwrites.
+seed_journal() {
+  local journal="$1" seed name today
+  today="$(date '+%Y-%m-%d')"
+  mkdir -p "$journal"
+  for seed in "$TEMPLATES"/journal-seed/*; do
+    name="$(basename "$seed")"
+    if [ -d "$seed" ]; then
+      mkdir -p "$journal/$name"
+      [ -n "$(ls -A "$journal/$name")" ] || touch "$journal/$name/.keep"
+    elif [ ! -f "$journal/$name" ]; then
+      sed "s/PLACEHOLDER/$today/g" "$seed" >"$journal/$name"
+    fi
+  done
+}
+
+# Print "date<US>status<US>summary" for an entry, from its frontmatter. US is
+# the ASCII unit separator, which never appears in text and is never merged
+# the way repeated tabs are.
+# Falls back to the first heading, then the topic, when there is no summary.
+entry_fields() {
+  awk '
+    NR == 1 && /^---$/ { fm = 1; next }
+    fm && /^---$/ { fm = 0; next }
+    fm {
+      key = $0; sub(/:.*/, "", key)
+      val = $0; sub(/^[^:]*:[[:space:]]*/, "", val)
+      gsub(/^"|"$/, "", val)
+      if (key == "date") date = val
+      else if (key == "status") status = val
+      else if (key == "summary") summary = val
+      else if (key == "topic") topic = val
+      next
+    }
+    !heading && /^# / { heading = substr($0, 3) }
+    END {
+      if (summary == "") summary = heading
+      if (summary == "") summary = topic
+      printf "%s\037%s\037%s\n", date, status, summary
+    }' "$1"
+}
+
+# One line per entry: "- `path` (date, status): summary".
+index_lines() {
+  local journal="$1" dir="$2" f rel date status summary meta
+  for f in "$journal/$dir"/*.md; do
+    [ -f "$f" ] || continue
+    rel="${f#"$journal"/}"
+    IFS=$'\037' read -r date status summary <<EOF
+$(entry_fields "$f")
+EOF
+    meta="$date"
+    [ -n "$status" ] && meta="${meta:+$meta, }$status"
+    echo "- \`$rel\`${meta:+ ($meta)}: $summary"
+  done
+}
+
+# Rebuild INDEX.md from every entry's frontmatter. Cheap and predictable, so
+# the curator never has to keep it in step by hand.
+build_index() {
+  local journal="$1" out tmp lines count f
+  out="$journal/INDEX.md"
+  tmp="$journal/.INDEX.tmp"
+  {
+    echo "---"
+    echo "id: index"
+    echo "type: index"
+    echo "summary: Every journal entry with a one-line summary. Rebuilt automatically, so do not edit it."
+    echo "---"
+    echo
+    echo "# Index"
+    echo
+    echo "## Start here"
+    echo
+    for f in overview lessons preferences glossary; do
+      [ -f "$journal/$f.md" ] && echo "- \`$f.md\`: $(entry_fields "$journal/$f.md" | cut -d $'\037' -f3)"
+    done
+    for f in "$journal"/*.md; do
+      [ -f "$f" ] || continue
+      case "$(basename "$f")" in README.md|INDEX.md|overview.md|lessons.md|preferences.md|glossary.md) continue ;; esac
+      echo "- \`$(basename "$f")\`: $(entry_fields "$f" | cut -d $'\037' -f3)"
+    done
+
+    lines="$(index_lines "$journal" decisions)"
+    if [ -n "$lines" ]; then
+      printf '\n## Decisions\n\n%s\n' "$lines"
+    fi
+    lines="$(index_lines "$journal" experiments)"
+    if [ -n "$lines" ]; then
+      printf '\n## Experiments\n\n%s\n' "$lines"
+    fi
+    lines="$(index_lines "$journal" weekly | sort -r)"
+    if [ -n "$lines" ]; then
+      printf '\n## Weekly round-ups\n\n%s\n' "$lines"
+    fi
+    lines="$(index_lines "$journal" logbook | sort -r)"
+    if [ -n "$lines" ]; then
+      count=$(printf '%s\n' "$lines" | wc -l | tr -d ' ')
+      printf '\n## Logbook, newest first\n\n%s\n' "$(printf '%s\n' "$lines" | head -30)"
+      [ "$count" -gt 30 ] && printf -- '- ...and %s older days in `logbook/`\n' "$((count - 30))"
+    fi
+    lines=""
+    for f in "$journal"/artefacts/*; do
+      [ -e "$f" ] && lines="$lines- \`artefacts/$(basename "$f")\`
+"
+    done
+    [ -n "$lines" ] && printf '\n## Artefacts\n\n%s' "$lines"
+  } >"$tmp"
+  mv "$tmp" "$out"
+}
+
+# Shrink a Claude Code transcript to the conversation and one line per action.
+# Prints nothing and fails when neither jq nor python3 is available.
+condense_transcript() {
+  local transcript="$1" out="$2"
+  if command -v jq >/dev/null 2>&1; then
+    jq -r -f "$TEMPLATES/condense.jq" "$transcript" >"$out" 2>/dev/null && [ -s "$out" ] && return 0
+  fi
+  if command -v python3 >/dev/null 2>&1; then
+    python3 - "$transcript" >"$out" 2>/dev/null <<'PY' && [ -s "$out" ] && return 0
+import json, sys
+
+def clip(text, n):
+    return text if len(text) <= n else text[:n] + " [...]"
+
+for line in open(sys.argv[1], encoding="utf-8", errors="replace"):
+    try:
+        rec = json.loads(line)
+    except ValueError:
+        continue
+    who = rec.get("type")
+    if who not in ("user", "assistant") or rec.get("isMeta"):
+        continue
+    content = (rec.get("message") or {}).get("content")
+    if isinstance(content, str):
+        content = [{"type": "text", "text": content}]
+    for block in content or []:
+        kind = block.get("type")
+        if kind == "text" and block.get("text", "").strip():
+            label = "PERSON: " if who == "user" else "CLAUDE: "
+            print(label + clip(block["text"], 4000))
+        elif kind == "tool_use":
+            inp = block.get("input") or {}
+            detail = ""
+            for key in ("file_path", "command", "pattern", "description", "url"):
+                if inp.get(key):
+                    detail = str(inp[key])
+                    break
+            print("ACTION: " + block.get("name", "") + " " + clip(detail.replace("\n", " "), 200))
+        elif kind == "tool_result" and block.get("is_error"):
+            body = block.get("content")
+            if isinstance(body, list):
+                body = " ".join(b.get("text", "") for b in body if isinstance(b, dict))
+            print("FAILED: " + clip(str(body or "").replace("\n", " "), 300))
+PY
+  fi
+  rm -f "$out"
+  return 1
+}
+
+# Write the curator's instructions to a file. $1 is the session note.
+write_curator_prompt() {
+  local note="$1" out="$2"
+  awk -v project="$(basename "$ROOT")" -v j="$JOURNAL_NAME" -v today="$(date '+%Y-%m-%d')" -v note="$note" '
+    { gsub(/\{\{PROJECT\}\}/, project); gsub(/\{\{J\}\}/, j); gsub(/\{\{TODAY\}\}/, today)
+      if ($0 == "{{SESSION_NOTE}}") { print note; next }
+      print }' "$TEMPLATES/curator.md" >"$out"
+}
+
+# Run the curator in the project root. It may read the project and edit only
+# inside the journal; it has no shell and no web access. $1 is the prompt file,
+# $2 is an extra Read rule (or empty).
+run_curator() {
+  local prompt_file="$1" extra_read="${2:-}" allowed
+  allowed="Edit(./$JOURNAL_NAME/**)"
+  [ -n "$extra_read" ] && allowed="$allowed,$extra_read"
+  set_model_args
+  (cd "$ROOT" && SCRIBE_SUBAGENT=1 CLAUDE_JOURNAL_HOOK=1 claude -p \
+    --tools "Read,Glob,Grep,Edit,Write" \
+    --permission-mode dontAsk \
+    --allowedTools "$allowed" \
+    --no-session-persistence \
+    ${MODEL_ARGS[@]+"${MODEL_ARGS[@]}"} <"$prompt_file")
+}
+
 # ---------------------------------------------------------------------------
 # Commands
 # ---------------------------------------------------------------------------
@@ -258,17 +449,8 @@ cmd_init() {
   fi
   [ -d "$TEMPLATES/journal-seed" ] || die "templates not found at $TEMPLATES"
 
-  mkdir -p "$JOURNAL/logbook" "$JOURNAL/decisions" "$JOURNAL/experiments"
-  local seed sub
-  for seed in lessons.md README.md; do
-    if [ ! -f "$JOURNAL/$seed" ]; then
-      sed "s/PLACEHOLDER/$(date '+%Y-%m-%d')/g" "$TEMPLATES/journal-seed/$seed" >"$JOURNAL/$seed"
-    fi
-  done
-  for sub in logbook decisions experiments; do
-    [ -f "$JOURNAL/$sub/.keep" ] || touch "$JOURNAL/$sub/.keep"
-  done
-
+  seed_journal "$JOURNAL"
+  build_index "$JOURNAL"
   add_git_exclude "$ROOT"
 
   # Clear any earlier "no" for this project.
@@ -355,7 +537,7 @@ cmd_off() {
 
 cmd_archive() {
   require_journal
-  if [ -z "$(find "$JOURNAL" -name '*.md' ! -name README.md 2>/dev/null)" ]; then
+  if [ $(( $(count_md "$JOURNAL/logbook") + $(count_md "$JOURNAL/decisions") + $(count_md "$JOURNAL/experiments") )) -eq 0 ]; then
     die "nothing to archive yet: the journal is empty"
   fi
 
@@ -399,10 +581,24 @@ EOF
     echo
     echo "$summary"
     echo
+    if [ -f "$JOURNAL/overview.md" ] && ! grep -q '^Not written yet' "$JOURNAL/overview.md"; then
+      echo "## Where it stands"
+      echo
+      strip_frontmatter "$JOURNAL/overview.md" | grep -v '^# ' | demote_headings
+      echo
+    fi
+
     echo "## Lessons learned"
     echo
-    [ -f "$JOURNAL/lessons.md" ] && strip_frontmatter "$JOURNAL/lessons.md" | grep -v '^# '
+    [ -f "$JOURNAL/lessons.md" ] && strip_frontmatter "$JOURNAL/lessons.md" | grep -v '^# ' | demote_headings
     echo
+
+    if grep -q '^## ' "$JOURNAL/preferences.md" 2>/dev/null; then
+      echo "## Preferences"
+      echo
+      strip_frontmatter "$JOURNAL/preferences.md" | grep -v '^# ' | demote_headings
+      echo
+    fi
 
     if [ "$(count_md "$JOURNAL/decisions")" -gt 0 ]; then
       echo "## Decisions"
@@ -444,6 +640,27 @@ EOF
   echo "Saved to your desktop as ${proj_safe}_archive.md"
   echo "  desktop: $out"
   echo "  library: $lib_out"
+}
+
+cmd_curate() {
+  require_journal
+  command -v claude >/dev/null 2>&1 || die "Claude Code is not on PATH, so the curator cannot run"
+  local prompt_file
+  prompt_file="$(mktemp)"
+  write_curator_prompt "There is no new session to record, so skip step 2. Tidy the journal that is already there: turn decisions, experiments, lessons and preferences buried in the logbook into proper entries (step 3), then carry out step 4." "$prompt_file"
+  echo "Curating the journal. This can take a minute or two."
+  if ! run_curator "$prompt_file" ""; then
+    rm -f "$prompt_file"
+    die "the curator did not finish"
+  fi
+  rm -f "$prompt_file"
+  build_index "$JOURNAL"
+}
+
+cmd_index() {
+  require_journal
+  build_index "$JOURNAL"
+  echo "Rebuilt $JOURNAL_NAME/INDEX.md."
 }
 
 cmd_link() {
@@ -670,7 +887,7 @@ EOF
   fi
 
   if [ -f "$JOURNAL/.paused" ]; then
-    echo "Terminal Scribe is paused for this project ($ROOT). Do not write to the journal unless the person asks you to resume (\`"$SCRIBE_BIN_PATH" resume\`)."
+    echo "Terminal Scribe is paused for this project ($ROOT). Do not write to the journal unless the person asks you to resume (\`\"$SCRIBE_BIN_PATH\" resume\`)."
     return 0
   fi
 
@@ -678,34 +895,46 @@ EOF
   echo
   echo "# Journal for $(basename "$ROOT")"
 
-  local latest
-  latest=$(ls -1t "$JOURNAL"/logbook/*.md 2>/dev/null | head -1)
-  if [ -n "$latest" ]; then
+  # Journals from earlier versions gain any new starter files, such as the
+  # overview and preferences, and the index is rebuilt so it is current.
+  seed_journal "$JOURNAL"
+  build_index "$JOURNAL"
+
+  if grep -q '^Not written yet' "$JOURNAL/overview.md" 2>/dev/null; then
+    # No curated overview yet, so the latest logbook is the best summary.
+    local latest
+    latest=$(ls -1t "$JOURNAL"/logbook/*.md 2>/dev/null | head -1)
+    if [ -n "$latest" ]; then
+      echo
+      echo "## Most recent logbook entry ($JOURNAL_NAME/logbook/$(basename "$latest"))"
+      echo
+      head_with_note "$latest" 150
+    fi
+  else
     echo
-    echo "## Most recent logbook entry ($(basename "$latest"))"
+    echo "## Overview ($JOURNAL_NAME/overview.md)"
     echo
-    head_with_note "$latest" 150
+    head_with_note "$JOURNAL/overview.md" 120
   fi
-  if [ -f "$JOURNAL/lessons.md" ]; then
+
+  if grep -q '^## ' "$JOURNAL/preferences.md" 2>/dev/null; then
     echo
-    echo "## Lessons so far"
+    echo "## What the person likes and rejects ($JOURNAL_NAME/preferences.md)"
     echo
-    head_with_note "$JOURNAL/lessons.md" 150
+    head_with_note "$JOURNAL/preferences.md" 80
+  fi
+
+  if grep -q '^### ' "$JOURNAL/lessons.md" 2>/dev/null; then
+    echo
+    echo "## Lessons by topic ($JOURNAL_NAME/lessons.md has the full text)"
+    echo
+    grep -E '^(## |### )' "$JOURNAL/lessons.md" | head -80
   fi
 
   echo
-  echo "## What else is in the journal (read only when needed)"
+  echo "## Everything in the journal ($JOURNAL_NAME/INDEX.md). Open entries only when needed."
   echo
-  echo "- \`$JOURNAL_NAME/decisions/\`: $(count_md "$JOURNAL/decisions") decision(s)"
-  echo "- \`$JOURNAL_NAME/experiments/\`: $(count_md "$JOURNAL/experiments") experiment(s)"
-  echo "- \`$JOURNAL_NAME/logbook/\`: $(count_md "$JOURNAL/logbook") day(s) of logbook"
-  [ -f "$JOURNAL/glossary.md" ] && echo "- \`$JOURNAL_NAME/glossary.md\`"
-  local f
-  for f in "$JOURNAL"/*.md; do
-    [ -f "$f" ] || continue
-    case "$(basename "$f")" in README.md|lessons.md|glossary.md) continue ;; esac
-    echo "- \`$JOURNAL_NAME/$(basename "$f")\`"
-  done
+  strip_frontmatter "$JOURNAL/INDEX.md" | grep -v '^# Index' | cat -s | sed '1{/^$/d;}' | head -150
 
   local imp archive
   if [ -f "$JOURNAL/.imports" ]; then
@@ -722,9 +951,9 @@ EOF
   log "session-start: context loaded for $ROOT"
 }
 
-# Starts a background Claude that reads the finished session and fills in the
-# journal. It may only read the transcript and the project, and only write
-# inside .scribe/. It has no shell and no web access.
+# Starts the curator in the background. It reads the finished session, records
+# it, and reorganises the journal. It may only read the session and the project,
+# and only write inside .scribe/. It has no shell and no web access.
 hook_session_end() {
   is_helper_session && return 0
 
@@ -765,38 +994,26 @@ hook_session_end() {
   rm -rf "$lock"
   mkdir "$lock" 2>/dev/null || return 0
 
-  local today prompt_file
-  today="$(date '+%Y-%m-%d')"
+  # The curator reads a condensed copy of the session, about a hundredth of the
+  # size. If that cannot be made, it reads the raw transcript instead.
+  local condensed session_note extra_read="" prompt_file
+  condensed="$state_dir/session-$(__sanitize "$session").txt"
+  if condense_transcript "$transcript" "$condensed"; then
+    session_note="A Claude Code session has just ended. Its conversation is in ./$JOURNAL_NAME/.state/$(basename "$condensed"). Each line starts with PERSON (the person), CLAUDE (Claude's reply), ACTION (a tool Claude used, with its file or command) or FAILED (an action that went wrong)."
+  else
+    condensed=""
+    session_note="A Claude Code session has just ended. Its full transcript, in JSON lines, is at $transcript. Read what the person and Claude said, and skip the rest."
+    extra_read="Read(/$transcript)"
+  fi
   prompt_file="$state_dir/prompt.txt"
-  cat >"$prompt_file" <<EOF
-You keep the journal for the project at $ROOT. A Claude Code session has just ended.
+  write_curator_prompt "$session_note" "$prompt_file"
 
-Read the transcript at $transcript and make sure the journal in ./$JOURNAL_NAME/ records it. Then stop.
-
-- Today's logbook is ./$JOURNAL_NAME/logbook/$today.md. If it already covers the session, add only what is missing. If it does not exist, create it with YAML frontmatter (id, type: logbook, date: $today, topic, tags, status, related) and a chronological account in plain English.
-- If a real decision was made, add ./$JOURNAL_NAME/decisions/NNN-slug.md (Context, Decision, Why, Consequences), numbered after the last one. Casual discussion is not a decision.
-- If a lesson worth keeping came up, add it to ./$JOURNAL_NAME/lessons.md. Ask: "would someone joining in six months thank me for this?"
-- If something was tried with a hypothesis and an outcome, success or failure, add ./$JOURNAL_NAME/experiments/$today-slug.md.
-- Add project-specific words to ./$JOURNAL_NAME/glossary.md.
-- Never copy passwords, API keys, tokens or personal data into the journal. Describe them instead.
-- Do not touch files whose names start with a dot.
-
-Do not ask questions. Do not explain what you did.
-EOF
-
-  set_model_args
   (
-    cd "$ROOT" || exit 0
-    SCRIBE_SUBAGENT=1 CLAUDE_JOURNAL_HOOK=1 claude -p \
-      --tools "Read,Glob,Grep,Edit,Write" \
-      --permission-mode dontAsk \
-      --allowedTools "Edit(./$JOURNAL_NAME/**),Read(/$transcript)" \
-      --no-session-persistence \
-      ${MODEL_ARGS[@]+"${MODEL_ARGS[@]}"} <"$prompt_file" >>"$state_dir/helper.log" 2>&1 \
-      && echo "$size" >"$state"
-    rm -rf "$lock" "$prompt_file"
+    run_curator "$prompt_file" "$extra_read" >>"$state_dir/helper.log" 2>&1 && echo "$size" >"$state"
+    build_index "$JOURNAL"
+    rm -rf "$lock" "$prompt_file" ${condensed:+"$condensed"}
   ) </dev/null >/dev/null 2>&1 &
-  # Detach so the helper keeps running after Claude Code exits.
+  # Detach so the curator keeps running after Claude Code exits.
   disown 2>/dev/null || true
   log "session-end: helper started for $session in $ROOT"
 }
@@ -820,6 +1037,7 @@ Claude runs these for you when you ask in plain English.
   scribe init [--decline]    Turn journaling on here (or say no, once)
   scribe status              Is journaling on, and what is in the journal
   scribe pause | resume      Stop and restart journal writes
+  scribe curate              Tidy and reorganise the journal now
   scribe archive             Save a summary of the project to your desktop
   scribe library             List archived projects
   scribe link | unlink NAME  Load (or stop loading) an archived project's lessons
@@ -842,6 +1060,8 @@ main() {
     pause)              cmd_pause "$@" ;;
     resume)             cmd_resume "$@" ;;
     archive)            cmd_archive "$@" ;;
+    curate)             cmd_curate "$@" ;;
+    index)              cmd_index "$@" ;;
     library)            cmd_library "$@" ;;
     link)               cmd_link "$@" ;;
     unlink)             cmd_unlink "$@" ;;

@@ -8,6 +8,11 @@ Terminal Scribe is now a Claude Code plugin.
 
 ### Added
 
+- A curator runs when each session ends. It records the session, pulls out decisions, experiments, lessons, preferences and terms, marks replaced decisions, rewrites the overview and writes a weekly round-up.
+- The curator reads a condensed copy of the session, about a hundredth of the size of the full record.
+- New journal files: `overview.md`, `preferences.md`, `INDEX.md` (rebuilt automatically from each entry's summary), `weekly/` and `artefacts/`.
+- `scribe curate` runs the curator straight away ("tidy the journal").
+- Claude now starts each session with the overview, your preferences, the titles of every lesson and the index, in place of the whole of the latest logbook.
 - Install with `/plugin install terminal-scribe --marketplace jasontheodorou/terminal-scribe`.
 - Slash commands: `/terminal-scribe:status`, `pause`, `resume`, `archive`, `enable` and `off`.
 - `scribe config` turns the background helper on or off, and sets the model it uses.
@@ -21,11 +26,11 @@ Terminal Scribe is now a Claude Code plugin.
 - The journal moved from `journal/` to `.scribe/`, so it no longer clashes with projects that have their own journal folder.
 - The journal is kept out of git with `.git/info/exclude`. Terminal Scribe no longer edits `.gitignore` or `CLAUDE.md`, which teams usually share.
 - Claude gets its journal instructions when each session starts, so they no longer live in `CLAUDE.md`.
-- The background helper runs once when a session ends. It used to run each time Claude replied, up to once every five minutes.
+- The background helper runs once when a session ends. It used to run each time Claude replied, up to once every five minutes, and saved every run to your session history.
 - The background helper can only write inside `.scribe/`, and it cannot run commands or use the web. It used to run with every permission check switched off.
 - Archive summaries are written by a Claude run that can only read files.
 - Saying no to journaling is remembered in `~/.scribe/declined`, so no marker file is left in the project.
-- Long logbook entries and lesson lists are cut at 150 lines when a session starts, so they do not fill Claude's context.
+- Lessons are grouped by topic and kind (lesson, insight, technique, pattern), in place of a list by date.
 
 ### Removed
 
