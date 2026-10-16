@@ -22,8 +22,8 @@ load helpers
 }
 
 @test "the instructions mention every command Claude may run" {
-  for c in pause resume status curate archive link "config background off" "off --yes"; do
-    grep -q "scribe $c" "$SCRIBE_REPO/templates/instructions.md"
+  for c in pause resume curate undo archive link "off --yes" new open list rename close reopen adopt import-kit running stop search recall digest preship publish config doctor; do
+    cat "$SCRIBE_REPO/templates/instructions.md" "$SCRIBE_REPO/templates/projects.md" | grep -q "scribe $c"
   done
 }
 

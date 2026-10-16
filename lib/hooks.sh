@@ -74,7 +74,7 @@ port_guidance() {
   cat <<EOF
 ## This project's port is $port
 
-When you start this project's local web server, always use port $port, so it never clashes with another project. Pass it the way the tool expects, for example \`PORT=$port npm run dev\` (Next.js, Express), \`npm run dev -- --port $port\` (Vite, Astro), or \`python3 -m http.server $port\`. If the project's own config fixes a different port, change it to $port. Then give the person the address, http://localhost:$port. Do not mention the port otherwise.
+Start its local server on port $port (for example \`PORT=$port npm run dev\`, \`npm run dev -- --port $port\` or \`python3 -m http.server $port\`), and give the address http://localhost:$port. Do not mention the port otherwise.
 
 EOF
 }

@@ -25,7 +25,7 @@ start_hook() {
 
 @test "session-start: always explains the project commands, with the session id" {
   run start_hook
-  [[ "$output" == *"projects in plain English"* ]]
+  [[ "$output" == *"Terminal Scribe runs this person"* ]]
   [[ "$output" == *"--session sess-1"* ]]
   [[ "$output" != *"{{"* ]]
 }
@@ -34,7 +34,7 @@ start_hook() {
   "$SCRIBE_BIN" init >/dev/null
   cd /
   run start_hook
-  [[ "$output" == *"keeping a journal"* ]]
+  [[ "$output" == *"The journal for this project is in"* ]]
 }
 
 @test "session-start: no offer after a decline" {
@@ -66,7 +66,7 @@ start_hook() {
   "$SCRIBE_BIN" pause >/dev/null
   run start_hook
   [[ "$output" == *"paused"* ]]
-  [[ "$output" != *"keep these files up to date"* ]]
+  [[ "$output" != *"note things while the detail is fresh"* ]]
 }
 
 @test "session-start: active context has instructions, latest entry and lessons" {
@@ -74,7 +74,7 @@ start_hook() {
   printf -- '---\nid: x\n---\n# 2026-04-30\nLatest session content.\n' > "$PROJECT_DIR/.scribe/logbook/2026-04-30.md"
   echo "- A lesson." >> "$PROJECT_DIR/.scribe/lessons.md"
   run start_hook
-  [[ "$output" == *"keep these files up to date"* ]]
+  [[ "$output" == *"note things while the detail is fresh"* ]]
   [[ "$output" == *"Latest session content"* ]]
   [[ "$output" == *"A lesson."* ]]
   [[ "$output" == *'`logbook/2026-04-30.md`'* ]]
@@ -143,7 +143,7 @@ start_hook() {
   done
   cd /
   run bash -c "$(declare -f hook_input); PROJECT_DIR='$PROJECT_DIR' hook_input SessionStart '' | PATH='$TEST_HOME/nojq' '$SCRIBE_BIN' hook session-start"
-  [[ "$output" == *"keeping a journal"* ]]
+  [[ "$output" == *"The journal for this project is in"* ]]
 }
 
 @test "session-start: shows the overview once the curator has written it" {

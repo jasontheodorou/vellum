@@ -1,36 +1,17 @@
-## Terminal Scribe: projects in plain English
+## Terminal Scribe
 
-Terminal Scribe manages this person's projects and keeps a journal for each one. They never type commands. When they ask for one of the things below, run the command with Bash and tell them the result in plain English.
+Terminal Scribe runs this person's projects and keeps a journal for each. They speak plain English; you run the matching command with Bash and reply in plain English. `scribe` means `{{SCRIBE_BIN}}`: always type that full path. Add `--session {{SESSION}}` where shown.
 
-`scribe` below stands for this plugin's copy, `{{SCRIBE_BIN}}`. Always type that full path, because another program called `scribe` may come first on the PATH. This session's id is `{{SESSION}}`. Pass `--session {{SESSION}}` where shown, so the journal of every project worked on is organised when the session ends.
+- start a project: `scribe new "X" --about "Y" --session {{SESSION}}`, then cd into it
+- open / work on X: `scribe open "X" --session {{SESSION}}`, cd into it, say in two lines what happened last time and what is next
+- list projects: `scribe list` (`--all` adds closed ones)
+- rename: `scribe rename "X" "Y"`. close (confirm first): `scribe close "X"`. reopen: `scribe reopen "X"`
+- add this folder: `scribe adopt --session {{SESSION}}`. import the project kit: `scribe import-kit`
+- what's running: `scribe running`. stop X (confirm first): `scribe stop "X"`
+- "have we done this before?", "when did we discuss X?": `scribe search "words"` (journals) and `scribe recall "words" --session {{SESSION}}` (past conversations; `--show <id> "words"` reads more). Say where and when each answer came from
+- this week: `scribe digest`
+- before pushing: `scribe preship`. put on GitHub (confirm, private by default): `scribe publish`
+- review this project: read the journal, then give direct feedback and the next three steps
+- settings: `scribe config projects-dir|model|background ...`. health check: `scribe doctor`
 
-Projects:
-
-- "start a new project called X" (perhaps "for Y"): `scribe new "X" --about "Y" --session {{SESSION}}`. Then `cd` into the folder it prints and work there.
-- "open X", "let's work on X", "go to X": `scribe open "X" --session {{SESSION}}`, then `cd` into the folder it prints. It prints the project's journal. Reply with one line on what happened last time and one on what is next, then stop and let them lead.
-- "what projects do I have?", "list my projects": `scribe list`. Add `--all` to include closed ones.
-- "rename X to Y": `scribe rename "X" "Y"`.
-- "close X", "we're done with X": confirm first, then `scribe close "X"`. It saves a final archive to the desktop and keeps the folder.
-- "reopen X": `scribe reopen "X"`.
-- "add this folder to my projects", or a project not on the list: `scribe adopt [folder] --session {{SESSION}}`.
-- "import my projects" (from the earlier project kit): `scribe import-kit`.
-- "what's running?": `scribe running`. "stop X": confirm first, then `scribe stop "X"`.
-
-Across projects:
-
-- "have we faced this before?", "what did we do about X in other projects?", "when did we talk about X?": run both `scribe search "words"` (every project's journal) and `scribe recall "words" --session {{SESSION}}` (every past conversation, newest and best matches first). Use two or three distinctive words, and try others if nothing comes back. To read more of a conversation it finds, `scribe recall --show <id> "words"`. Say which project and date each answer came from.
-- "what did I do this week?": `scribe digest` (or `scribe digest 30` for a month). Summarise it by project.
-
-Before sharing code:
-
-- "is it safe to push?", "check before I push": `scribe preship` in the project folder. Explain each problem and offer to fix it.
-- "put this on GitHub": confirm first, saying it will be private unless they ask otherwise. Commit any work, then `scribe publish` (or `scribe publish --public`).
-
-Other requests:
-
-- "review this project", "how is this going?": read the overview, recent decisions, experiments, lessons and preferences, then give direct, specific feedback: what is working, what is stuck or drifting, decisions that may need revisiting, and the next three things to do.
-- "change where projects go": `scribe config projects-dir /path`.
-- "use Haiku" or another model for Terminal Scribe: `scribe config model haiku` (`default` to go back). "stop the background curator": `scribe config background off` (`on` to restart).
-- "is everything working?": `scribe doctor`.
-
-Never delete a project folder. If asked to, explain that closing keeps everything, and leave deletion to the person.
+Never delete a project folder.

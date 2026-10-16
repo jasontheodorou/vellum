@@ -1,32 +1,12 @@
-## Terminal Scribe is keeping a journal for this project
+## The journal for this project is in `{{J}}/`
 
-The journal is in `{{J}}/` at the project root.
+If `{{J}}/.paused` exists, write nothing to it. Otherwise, as you work, note things while the detail is fresh. A curator organises everything when the session ends.
 
-Before any journal write, check that `{{J}}/.paused` does not exist. If it does, write nothing to the journal this session.
+- `{{J}}/logbook/YYYY-MM-DD.md`: what was asked, what you did and why, what went wrong, the outcome. Quote the person's reactions.
+- `{{J}}/decisions/NNN-slug.md` for a real decision (Context, Options considered, Decision, Why, Consequences). Use the next free number.
+- `{{J}}/experiments/YYYY-MM-DD-slug.md` for something tried (Hypothesis, Approach, Result, Conclusion). Failures matter most.
+- Before replacing something significant, copy the old version into `{{J}}/artefacts/`.
 
-### While you work
+Start files with YAML frontmatter (`id`, `type`, `date`, `summary`, `tags`, `status`, `related`). Never record passwords, keys or personal data. Answer questions about the project from the overview and index below, opening entries as needed. Check `{{J}}/preferences.md` before proposing a design or approach.
 
-When the session ends, a curator reads the conversation and organises everything: the overview, the index, lessons, preferences and the weekly round-up. Your part during the session is to capture things while the detail is fresh:
-
-- Add to today's logbook, `{{J}}/logbook/YYYY-MM-DD.md`, as work happens. Say what was asked, what you did and why, what went wrong and the outcome. Name the files, measurements and commands. Quote the person when they give direction or react to something.
-- When a real decision is made, write `{{J}}/decisions/NNN-slug.md` (Context, Options considered, Decision, Why, Consequences). List the folder first and use the next free number.
-- When something is tried to find something out, write `{{J}}/experiments/YYYY-MM-DD-slug.md` (Hypothesis, Approach, Result, Conclusion). Failures count most.
-- Before replacing or rolling back something significant, such as a page design, copy the old version into `{{J}}/artefacts/YYYY-MM-DD-slug.ext`.
-
-Start every file with YAML frontmatter: `id`, `type`, `date`, `summary` (one plain-English sentence), `tags`, `status`, `related`. Write in plain English and always say why. Never copy passwords, API keys, tokens or personal data into the journal. Describe them instead.
-
-### Answering from the journal
-
-When the person asks what was decided, learned or done ("what did we decide about X?", "what did I do yesterday?", "where did we get to?"), start from the overview and the index below, open the entries you need, and answer in the chat. They should never need to open the files. Before suggesting a design or approach, check `{{J}}/preferences.md` for what they have already liked or rejected.
-
-### Journal commands
-
-- "pause journaling": `scribe pause`. "resume journaling": `scribe resume`.
-- "is journaling on?": `scribe status`.
-- "tidy the journal", "curate the journal now": `scribe curate`. It takes a minute or two.
-- "undo the journal update": `scribe undo`. It restores the journal to how it was before the curator's last run.
-- "archive this project", "write it up for a stakeholder": `scribe archive`, then say where the file was saved.
-- "bring in what we learned on project X": `scribe link X`. To undo: `scribe unlink X`.
-- "stop the background curator": `scribe config background off`. To restart it: `scribe config background on`.
-- "use a cheaper model" (or a named one): `scribe config model haiku`. Back to the usual model: `scribe config model default`.
-- "turn off journaling here": confirm first, because it deletes the journal, then run `scribe off --yes`.
+Journal commands: pause / resume journaling: `scribe pause` / `scribe resume`. tidy the journal: `scribe curate`. undo the journal update: `scribe undo`. archive / write it up: `scribe archive`. bring in project X's lessons: `scribe link X` (`unlink` to undo). turn off journaling here (confirm first, it deletes the journal): `scribe off --yes`.
