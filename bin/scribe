@@ -90,6 +90,7 @@ main() {
     digest)             cmd_digest "$@" ;;
     preship)            cmd_preship "$@" ;;
     publish)            cmd_publish "$@" ;;
+    statusline)         cmd_statusline "$@" ;;
     init)               cmd_init "$@" ;;
     status)             cmd_status "$@" ;;
     pause)              cmd_pause "$@" ;;

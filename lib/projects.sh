@@ -601,3 +601,86 @@ cmd_publish() {
   gh repo create "$name" "$visibility" --source=. --remote=origin --push
   echo "Published $name to GitHub (${visibility#--})."
 }
+
+# ---------------------------------------------------------------------------
+# Status line
+# ---------------------------------------------------------------------------
+
+# The registered project that contains a folder: the longest matching path.
+reg_name_containing() {
+  [ -f "$REGISTRY" ] || return 0
+  awk -F'\t' -v d="$1/" 'index(d, $2 "/") == 1 && length($2) > best {best = length($2); name = $1} END {if (name != "") print name}' "$REGISTRY"
+}
+
+# Each project gets its own colour, the same every time.
+project_colour() {
+  local colours="37 170 208 71 68 178 133 30" n
+  n=$(printf '%s' "$1" | cksum | cut -d' ' -f1)
+  set -- $colours
+  shift $(( n % $# ))
+  echo "$1"
+}
+
+# Is something serving this port? Cached for 15 seconds, because the status
+# line redraws often and lsof is slow.
+port_running_cached() {
+  local port="$1" cache="$SCRIBE_HOME/.cache/port-$1" now
+  now=$(date +%s)
+  mkdir -p "$SCRIBE_HOME/.cache" 2>/dev/null || return 1
+  if [ -f "$cache" ] && [ $((now - $(stat -f %m "$cache" 2>/dev/null || stat -c %Y "$cache" 2>/dev/null || echo 0))) -lt 15 ]; then
+    [ "$(cat "$cache")" = "1" ]
+    return
+  fi
+  if port_in_use "$port"; then echo 1 >"$cache"; return 0; fi
+  echo 0 >"$cache"
+  return 1
+}
+
+# Claude Code's status line. Reads the session's JSON on stdin and prints one
+# quiet line: the project's name in its own colour. Anything else appears only
+# when it needs attention: the server is running, the branch is not the main
+# one, commits are waiting to be pushed, or the journal is paused.
+cmd_statusline() {
+  local input="" cwd name line dir port root colour out branch ahead
+  [ -t 0 ] || input="$(cat || true)"
+  cwd="$(json_field "$input" cwd)"
+  [ -n "$cwd" ] || cwd="$PWD"
+
+  name="$(reg_name_containing "$cwd")"
+  if [ -n "$name" ]; then
+    line="$(reg_line "$name")"
+    dir="$(field "$line" 2)"
+    port="$(field "$line" 3)"
+  else
+    # Not on the list: a project kit folder, or any folder with a journal.
+    root="$(project_root "$cwd")"
+    set_project "$root"
+    [ "$root" != "$HOME" ] || return 0
+    case "$root/" in "$(projects_dir)"/*) ;; *) [ -d "$JOURNAL" ] || return 0 ;; esac
+    dir="$root"
+    name="$(basename "$root")"
+    port="$(kit_ports | awk -F'\t' -v n="$name" '$1 == n {print $2; exit}')"
+  fi
+  set_project "$dir"
+
+  colour="$(project_colour "$name")"
+  out="$(printf '\033[38;5;%sm●\033[0m \033[1;38;5;%sm%s\033[0m' "$colour" "$colour" "$name")"
+
+  if [ -n "$port" ] && port_running_cached "$port"; then
+    out="$out  $(printf '\033[38;5;71mlive on :%s\033[0m' "$port")"
+  fi
+
+  if [ -e "$dir/.git" ]; then
+    branch="$(git -C "$dir" branch --show-current 2>/dev/null)"
+    case "$branch" in
+      ""|main|master) ;;
+      *) out="$out  $(printf '\033[2m%s\033[0m' "$branch")" ;;
+    esac
+    ahead="$(git -C "$dir" rev-list --count '@{upstream}..HEAD' 2>/dev/null || true)"
+    [ -n "$ahead" ] && [ "$ahead" -gt 0 ] && out="$out  $(printf '\033[38;5;208m%s to push\033[0m' "$ahead")"
+  fi
+
+  [ -f "$JOURNAL/.paused" ] && out="$out  $(printf '\033[38;5;178mjournal paused\033[0m')"
+
+  printf '%s' "$out"
+}
