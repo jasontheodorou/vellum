@@ -49,7 +49,7 @@ line_for() {
   a=$(printf '{"cwd":"%s"}' "$P/garden" | "$SCRIBE_BIN" statusline)
   b=$(printf '{"cwd":"%s"}' "$P/garden" | "$SCRIBE_BIN" statusline)
   [ "$a" = "$b" ]
-  [[ "$a" == *$'\033[38;5;'* ]] || false
+  [[ "$a" == $'\033[3'[1-6]m* ]] || false
 }
 
 @test "statusline: keeps the session's project when Claude looks elsewhere" {
@@ -74,4 +74,17 @@ line_for() {
   for i in $(seq 1 11); do "$SCRIBE_BIN" new "p$i" >/dev/null; line_for "$P/p$i" >/dev/null; done
   [ "$(cut -f7 "$HOME/.scribe/projects.tsv" | LC_ALL=C sort | LC_ALL=C uniq -c | awk '$1 > 2' | wc -l | tr -d ' ')" -eq 0 ]
   [ "$(cut -f7 "$HOME/.scribe/projects.tsv" | LC_ALL=C sort -u | wc -l | tr -d ' ')" -eq 10 ]
+}
+
+@test "statusline: only the theme's own colours, and the name in plain bold" {
+  "$SCRIBE_BIN" new garden >/dev/null
+  out=$(printf '{"cwd":"%s"}' "$P/garden" | "$SCRIBE_BIN" statusline)
+  refute grep -q '38;5;' <<<"$out"
+  [[ "$out" == *$'\033[1mgarden\033[0m'* ]] || false
+}
+
+@test "statusline: no colour at all with NO_COLOR" {
+  "$SCRIBE_BIN" new garden >/dev/null
+  out=$(printf '{"cwd":"%s"}' "$P/garden" | NO_COLOR=1 "$SCRIBE_BIN" statusline)
+  [ "$out" = "● garden" ]
 }

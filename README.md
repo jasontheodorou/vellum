@@ -72,7 +72,7 @@ Claude reads the overview, your preferences and the index whenever you open a pr
 - **Last time.** When you start Claude in a project, one line reminds you where you were, such as "Last time, 16 Oct: chose raised beds. Next: confirm bed sizes."
 - **Journal updates.** If the curator changed a journal after your last session, one line says what, such as "sanctum: 1 decision, lessons and the overview."
 - **The right port.** Every project has its own port, and Claude uses it when it starts the project's server, so two projects never clash.
-- **The status line.** The bottom line shows the project's name in its own colour, next to its own shape (● ◆ ▲ ■ and so on), so several open windows are easy to tell apart. It adds more only when something needs your attention: the server is live, you are on a side branch, commits are waiting to be pushed, or the journal is paused. To turn it on, add `"statusLine": {"type": "command", "command": "scribe statusline"}` to `~/.claude/settings.json`, or ask Claude to do it.
+- **The status line.** The bottom line shows the project's name in its own colour, next to its own shape (● ◆ ▲ ■ and so on), so several open windows are easy to tell apart. The colours come from your terminal's theme, so they suit your background, and the name is always in your normal text colour. Set `NO_COLOR` to turn colour off. It adds more only when something needs your attention: the server is live, you are on a side branch, commits are waiting to be pushed, or the journal is paused. To turn it on, add `"statusLine": {"type": "command", "command": "scribe statusline"}` to `~/.claude/settings.json`, or ask Claude to do it.
 
 ## Recall: every past conversation
 

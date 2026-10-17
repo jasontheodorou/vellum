@@ -644,13 +644,25 @@ project_shape() {
   echo "$1"
 }
 
-# Each project gets its own colour, the same every time.
+# Each project gets its own colour, the same every time. Only the terminal's six
+# standard colours are used (31 red to 36 cyan): every theme sets those to suit
+# its own background, so they stay readable whatever theme is chosen.
 project_colour() {
-  local colours="37 170 208 71 68 178 133 30" n
+  local colours="36 35 33 32 34 31" n
   n=$(printf '%s' "$1" | cksum | cut -d' ' -f1)
   set -- $colours
   shift $(( n % $# ))
   echo "$1"
+}
+
+# Print text in a terminal style (a colour from 31 to 36, or 1 for bold), unless
+# the person has switched colour off with NO_COLOR.
+paint() {
+  if [ -n "${NO_COLOR:-}" ]; then
+    printf '%s' "$2"
+  else
+    printf '\033[%sm%s\033[0m' "$1" "$2"
+  fi
 }
 
 # Is something serving this port? Cached for 15 seconds, because the status
@@ -703,23 +715,25 @@ cmd_statusline() {
   [ -n "$session" ] && [ "$(tail -1 "$SESSIONS/$(__sanitize "$session")" 2>/dev/null)" != "$dir" ] && remember_session "$session" "$dir"
 
   colour="$(project_colour "$name")"
-  out="$(printf '\033[38;5;%sm%s\033[0m \033[1;38;5;%sm%s\033[0m' "$colour" "$(project_shape "$name")" "$colour" "$name")"
+  # The shape takes the colour; the name stays in the theme's own text colour,
+  # in bold, so it is always as readable as everything else.
+  out="$(paint "$colour" "$(project_shape "$name")") $(paint 1 "$name")"
 
   if [ -n "$port" ] && port_running_cached "$port"; then
-    out="$out  $(printf '\033[38;5;71mlive on :%s\033[0m' "$port")"
+    out="$out  $(paint 32 "live on :$port")"
   fi
 
   if [ -e "$dir/.git" ]; then
     branch="$(git -C "$dir" branch --show-current 2>/dev/null)"
     case "$branch" in
       ""|main|master) ;;
-      *) out="$out  $(printf '\033[2m%s\033[0m' "$branch")" ;;
+      *) out="$out  $branch" ;;
     esac
     ahead="$(git -C "$dir" rev-list --count '@{upstream}..HEAD' 2>/dev/null || true)"
-    [ -n "$ahead" ] && [ "$ahead" -gt 0 ] && out="$out  $(printf '\033[38;5;208m%s to push\033[0m' "$ahead")"
+    [ -n "$ahead" ] && [ "$ahead" -gt 0 ] && out="$out  $(paint 33 "$ahead to push")"
   fi
 
-  [ -f "$JOURNAL/.paused" ] && out="$out  $(printf '\033[38;5;178mjournal paused\033[0m')"
+  [ -f "$JOURNAL/.paused" ] && out="$out  $(paint 33 "journal paused")"
 
   printf '%s' "$out"
 }
