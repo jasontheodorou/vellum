@@ -86,7 +86,9 @@ resolve_project() {
   local query="$1" lower matches count
   [ -n "$query" ] || die "say which project"
   [ -f "$REGISTRY" ] || die "there are no projects yet. Say 'start a new project called ...' or 'import my projects'."
-  lower=$(printf '%s' "$query" | tr '[:upper:]' '[:lower:]')
+  # Compare in the stored form, so "Patio Planner" finds patio-planner.
+  lower=$(slugify "$query")
+  [ -n "$lower" ] || die "say which project"
   matches=$(awk -F'\t' -v q="$lower" 'tolower($1) == q {print $1}' "$REGISTRY")
   if [ -z "$matches" ]; then
     matches=$(awk -F'\t' -v q="$lower" 'index(tolower($1), q) {print $1}' "$REGISTRY")
@@ -227,6 +229,8 @@ PY
     mkdir -p "$SCRIBE_HOME/retired"
     mv "$plist" "$SCRIBE_HOME/retired/"
     echo "Stopped the project kit's weekly job (moved to ~/.scribe/retired/). The curator writes weekly round-ups now."
+  elif has_kit_hooks "$root" || [ -f "$settings.kit-backup" ]; then
+    echo "There was no project kit weekly job for this project, so none was stopped."
   fi
 }
 
@@ -281,7 +285,7 @@ cmd_new() {
 cmd_open() {
   parse_session "$@"
   local name line dir
-  name="$(resolve_project "${ARGS[*]:-}")"
+  name="$(resolve_project "${ARGS[*]:-}")" || exit 1
   line="$(reg_line "$name")"
   dir="$(field "$line" 2)"
   [ -d "$dir" ] || die "$name's folder, $dir, is missing. It may have been moved or deleted."
@@ -336,7 +340,7 @@ cmd_list() {
 
 cmd_rename() {
   local name new line dir target here
-  name="$(resolve_project "${1:-}")"
+  name="$(resolve_project "${1:-}")" || exit 1
   new="$(slugify "${2:-}")"
   [ -n "$new" ] || die "say the new name"
   [ -z "$(reg_line "$new")" ] || die "there is already a project called $new"
@@ -367,7 +371,7 @@ cmd_rename() {
 cmd_close() {
   local name line dir archive=1
   [ "${2:-}" = "--no-archive" ] && archive=0
-  name="$(resolve_project "${1:-}")"
+  name="$(resolve_project "${1:-}")" || exit 1
   line="$(reg_line "$name")"
   dir="$(field "$line" 2)"
   [ "$(field "$line" 4)" = "closed" ] && die "$name is already closed"
@@ -387,7 +391,7 @@ cmd_close() {
 
 cmd_reopen() {
   local name
-  name="$(resolve_project "${1:-}")"
+  name="$(resolve_project "${1:-}")" || exit 1
   reg_set "$name" 4 active
   reg_set "$name" 6 ""
   echo "Reopened $name."
@@ -438,7 +442,7 @@ cmd_adopt() {
 # Put every project from the earlier project kit on the list. Changes nothing
 # inside the projects; each one's kit hooks are retired when it is next opened.
 cmd_import_kit() {
-  local added=0 name port dir
+  local added=0 name port dir names=""
   while IFS="$TAB" read -r name port; do
     [ -n "$name" ] || continue
     dir="$(projects_dir)/$name"
@@ -447,10 +451,16 @@ cmd_import_kit() {
     [ -z "$(reg_line "$name")" ] || continue
     reg_add "$name" "$dir" "$port"
     added=$((added + 1))
+    names="${names:+$names, }$name"
   done <<EOF
 $(kit_ports)
 EOF
-  echo "Added $added project(s) from the project kit."
+  if [ $added -eq 0 ]; then
+    echo "Added 0 project(s): every project kit project still on disk is already on the list."
+  else
+    echo "Added $added project(s) from the project kit: $names."
+  fi
+  echo
   cmd_list
 }
 
@@ -473,7 +483,7 @@ cmd_running() {
 
 cmd_stop() {
   local name port pids
-  name="$(resolve_project "${1:-}")"
+  name="$(resolve_project "${1:-}")" || exit 1
   port="$(field "$(reg_line "$name")" 3)"
   pids="$(lsof -nP -iTCP:"$port" -sTCP:LISTEN -t 2>/dev/null || true)"
   [ -n "$pids" ] || { echo "$name is not running."; return 0; }

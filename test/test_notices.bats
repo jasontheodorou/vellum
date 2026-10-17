@@ -113,3 +113,16 @@ end_session() {
   [ "$(ls .scribe/.state/snapshots | grep -vc before-undo)" -eq 10 ]
   [ ! -f .scribe/.state/snapshots/2026-01-01-000000.tgz ]
 }
+
+@test "undo: the curator does not run again when the undo session ends" {
+  end_session
+  wait_for_file "$P/garden/.scribe/.state/s1"
+  sleep 0.3
+  cd "$P/garden"
+  "$SCRIBE_BIN" undo >/dev/null
+  printf '{"cwd":"%s","session_id":"s2","transcript_path":"%s"}' "$P/garden" "$T" | "$SCRIBE_BIN" hook session-end
+  sleep 1.5
+  [ ! -f "$P/garden/.scribe/decisions/001-raised-beds.md" ]
+  [ ! -f "$P/garden/.scribe/.state/skip-next" ]
+  [ ! -f "$P/garden/.scribe/.state/s2" ]
+}

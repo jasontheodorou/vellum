@@ -436,6 +436,9 @@ cmd_undo() {
   when="$(basename "$latest" .tgz | awk -F- '{printf "%s-%s-%s at %s:%s", $1, $2, $3, substr($4, 1, 2), substr($4, 3, 2)}')"
   rm -f "$latest"
   build_index "$JOURNAL"
+  # Without this, the curator would run when this session ends and could redo
+  # the very update that was just undone.
+  : >"$JOURNAL/.state/skip-next"
   echo "The journal is back as it was on $when, before the curator's last update."
   echo "The version you just replaced is saved in $JOURNAL_NAME/.state/snapshots/ if you need it."
 }

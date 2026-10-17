@@ -83,6 +83,11 @@ __sanitize() {
 }
 
 __desktop_path() {
+  # Tests send archives somewhere other than the real desktop.
+  if [ -n "${SCRIBE_DESKTOP:-}" ]; then
+    mkdir -p "$SCRIBE_DESKTOP" && echo "$SCRIBE_DESKTOP"
+    return 0
+  fi
   if [ -d "$HOME/Desktop" ]; then
     echo "$HOME/Desktop"
     return 0

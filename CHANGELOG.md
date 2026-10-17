@@ -8,6 +8,7 @@ Scribe (formerly Terminal Scribe) is now a Claude Code plugin.
 
 ### Added
 
+- `scribe undo` restores the journal to how it was before the curator's last run; the curator skips the session in which you undo.
 - Recall: search every past Claude Code conversation on the computer ("why did we drop the Priorities page?"), with the date, project and the person's words. Conversations are condensed once into `~/.scribe/recall/` and refreshed as they change; background helper runs are skipped.
 - A quiet status line: the project's name in its own colour and its own shape (● ◆ ▲ ■ …), so windows are easy to tell apart, plus the server, branch, unpushed commits or a paused journal only when they need attention.
 - At the start of a session in a project, one line says what happened last time and what is next.

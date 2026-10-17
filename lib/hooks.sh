@@ -362,6 +362,11 @@ prepare_curation() {
   set_project "$root"
   [ -d "$JOURNAL" ] || return 0
   [ -f "$JOURNAL/.paused" ] && { log "session-end: paused in $ROOT"; return 0; }
+  if [ -f "$JOURNAL/.state/skip-next" ]; then
+    rm -f "$JOURNAL/.state/skip-next"
+    log "session-end: skipped after an undo in $ROOT"
+    return 0
+  fi
 
   state_dir="$JOURNAL/.state"
   mkdir -p "$state_dir"

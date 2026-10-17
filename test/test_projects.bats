@@ -201,7 +201,7 @@ JSON
   echo '{"next": 3025, "projects": {"katsura": 3019, "sanctum": 3022, "deleted": 3001}}' > "$P/.ports.json"
   run "$SCRIBE_BIN" import-kit
   [ "$status" -eq 0 ]
-  [[ "$output" == *"Added 2 project(s)"* ]] || false
+  [[ "$output" == *"Added 2 project(s) from the project kit: katsura, sanctum."* ]] || false
   reg | grep -q "^katsura	$P/katsura	3019	active"
   reg | grep -q "^sanctum	$P/sanctum	3022	active"
   refute grep -q "^deleted" "$HOME/.scribe/projects.tsv"
@@ -357,4 +357,24 @@ FAKE
   [ "$(grep -c . "$HOME/.scribe/projects.tsv")" -eq 1 ]
   out=$(printf '{"cwd":"%s"}' "$HOME/link-projects/garden" | "$SCRIBE_BIN" statusline | sed 's/\x1b\[[0-9;]*m//g')
   [[ "$out" == "● garden"* ]] || false
+}
+
+@test "names: a name with spaces or capitals finds the project" {
+  "$SCRIBE_BIN" new "patio planner" >/dev/null
+  run "$SCRIBE_BIN" open "Patio Planner"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Project: patio-planner"* ]] || false
+  run "$SCRIBE_BIN" rename "patio planner" "garden patio"
+  [ "$status" -eq 0 ]
+  [ -d "$P/garden-patio" ]
+}
+
+@test "names: an unknown project stops the command, with no false success" {
+  "$SCRIBE_BIN" new garden >/dev/null
+  for cmd in "open kitchen" "rename kitchen larder" "close kitchen" "reopen kitchen" "stop kitchen"; do
+    run "$SCRIBE_BIN" $cmd
+    [ "$status" -ne 0 ]
+    [[ "$output" != *"Renamed"* && "$output" != *"Closed"* && "$output" != *"Reopened"* && "$output" != *"Project:"* ]] || false
+  done
+  [ -d "$P/garden" ]
 }
