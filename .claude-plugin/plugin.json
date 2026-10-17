@@ -1,6 +1,6 @@
 {
-  "name": "terminal-scribe",
-  "displayName": "Terminal Scribe",
+  "name": "scribe",
+  "displayName": "Scribe",
   "version": "1.0.0",
   "description": "Run your projects in plain English: start, open, search, archive and close them, with a curated journal of every decision, experiment, lesson and preference.",
   "author": {

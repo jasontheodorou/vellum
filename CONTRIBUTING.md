@@ -20,7 +20,7 @@ Thank you for helping. Bug reports, ideas and pull requests are all welcome.
 | `templates/curator.md` | What the curator is told at the end of a session |
 | `templates/condense.jq` | Shrinks a session record for the curator (the script has a Python copy for computers without jq) |
 | `templates/journal-seed/` | The files a new journal starts with |
-| `skills/` | The `/terminal-scribe:` slash commands |
+| `skills/` | The `/scribe:` slash commands |
 | `test/` | Automated tests, and the manual test in `SMOKE-TEST.md` |
 
 The scripts must run on bash 3.2, which is the version macOS ships. That means no associative arrays, no `${var,,}` and no `mapfile`.

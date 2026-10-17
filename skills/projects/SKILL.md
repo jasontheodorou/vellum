@@ -1,6 +1,6 @@
 ---
 name: projects
-description: List your Terminal Scribe projects, most recent first.
+description: List your Scribe projects, most recent first.
 disable-model-invocation: true
 ---
 

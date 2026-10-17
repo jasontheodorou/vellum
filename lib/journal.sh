@@ -203,7 +203,7 @@ cmd_init() {
     mkdir -p "$SCRIBE_HOME"
     touch "$DECLINED"
     grep -qxF "$ROOT" "$DECLINED" || echo "$ROOT" >>"$DECLINED"
-    echo "Terminal Scribe will not ask about $ROOT again."
+    echo "Scribe will not ask about $ROOT again."
     return 0
   fi
 
@@ -534,7 +534,7 @@ cmd_migrate() {
   fi
   add_git_exclude "$ROOT"
 
-  echo "Moved the journal from journal/ to $JOURNAL_NAME/ and removed the Terminal Scribe block from CLAUDE.md."
+  echo "Moved the journal from journal/ to $JOURNAL_NAME/ and removed the Scribe block from CLAUDE.md."
   echo "Check 'git status': CLAUDE.md and .gitignore may now show as changed."
 }
 
@@ -599,7 +599,7 @@ PY
 
 cmd_doctor() {
   local issues=0
-  echo "Terminal Scribe $(plugin_version)"
+  echo "Scribe $(plugin_version)"
   if command -v claude >/dev/null 2>&1; then
     echo "  ok   Claude Code is installed"
   else

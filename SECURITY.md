@@ -16,4 +16,4 @@ These are especially important to us:
 
 ## Supported versions
 
-Only the latest release gets security fixes. Versions before 1.0, which were installed with the curl script, are no longer supported. Ask Claude to "remove the old Terminal Scribe install" to remove one.
+Only the latest release gets security fixes. Versions before 1.0, which were installed with the curl script, are no longer supported. Ask Claude to "remove the old Scribe install" to remove one.

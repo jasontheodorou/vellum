@@ -9,7 +9,7 @@
 # set_project chose. Used at session start and when a project is opened.
 project_context() {
   if [ -f "$JOURNAL/.paused" ]; then
-    echo "Terminal Scribe is paused for this project ($ROOT). Do not write to the journal unless the person asks you to resume (\`\"$SCRIBE_BIN_PATH\" resume\`)."
+    echo "Scribe is paused for this project ($ROOT). Do not write to the journal unless the person asks you to resume (\`\"$SCRIBE_BIN_PATH\" resume\`)."
     return 0
   fi
 
@@ -285,13 +285,13 @@ session_start_context() {
 
   if has_legacy_install; then
     cat <<EOF
-Terminal Scribe note: the old curl version of Terminal Scribe is still installed alongside the plugin, so both may write journals. In your next reply, tell the person this once and offer to run \`"$SCRIBE_BIN_PATH" remove-old-install\`, which removes the old hooks, commands and PATH line and keeps their archived projects.
+Scribe note: the old curl version of Scribe is still installed alongside the plugin, so both may write journals. In your next reply, tell the person this once and offer to run \`"$SCRIBE_BIN_PATH" remove-old-install\`, which removes the old hooks, commands and PATH line and keeps their archived projects.
 
 EOF
   fi
   if [ ! -s "$REGISTRY" ] && [ -n "$(kit_ports)" ]; then
     cat <<EOF
-Terminal Scribe note: the project list is empty, but the earlier project kit has $(kit_ports | grep -c .) projects in $(projects_dir). In your next reply, offer once to bring them in with \`"$SCRIBE_BIN_PATH" import-kit\`.
+Scribe note: the project list is empty, but the earlier project kit has $(kit_ports | grep -c .) projects in $(projects_dir). In your next reply, offer once to bring them in with \`"$SCRIBE_BIN_PATH" import-kit\`.
 
 EOF
   fi
@@ -312,16 +312,16 @@ EOF
   if [ ! -d "$JOURNAL" ]; then
     if has_legacy_journal "$ROOT"; then
       cat <<EOF
-Terminal Scribe: this project ($ROOT) has a journal in journal/ from the old version of Terminal Scribe. In your next reply, offer once to move it with \`"$SCRIBE_BIN_PATH" migrate\`. That moves it to .scribe/, removes the Terminal Scribe block from CLAUDE.md and the journal/ line from .gitignore, and keeps it out of git another way. Until then, keep following the journal instructions in CLAUDE.md.
+Scribe: this project ($ROOT) has a journal in journal/ from the old version of Scribe. In your next reply, offer once to move it with \`"$SCRIBE_BIN_PATH" migrate\`. That moves it to .scribe/, removes the Scribe block from CLAUDE.md and the journal/ line from .gitignore, and keeps it out of git another way. Until then, keep following the journal instructions in CLAUDE.md.
 EOF
       return 0
     fi
     is_declined "$ROOT" && return 0
     looks_like_project "$ROOT" || return 0
     cat <<EOF
-Terminal Scribe is installed but this folder ($ROOT) is not one of their projects yet.
+Scribe is installed but this folder ($ROOT) is not one of their projects yet.
 
-In your next reply, ask once whether to add it. Suggested wording: "Terminal Scribe can add this folder to your projects and keep a private journal of it, so I remember what we decided next time. Add it? (yes / no / not now)".
+In your next reply, ask once whether to add it. Suggested wording: "Scribe can add this folder to your projects and keep a private journal of it, so I remember what we decided next time. Add it? (yes / no / not now)".
 
 - Yes: run \`"$SCRIBE_BIN_PATH" adopt --session $session\` and tell them what it printed.
 - No: run \`"$SCRIBE_BIN_PATH" init --decline\`, so you do not ask again.
@@ -343,7 +343,7 @@ EOF
 
   if has_kit_hooks "$ROOT"; then
     cat <<EOF
-Terminal Scribe note: this project still has the earlier project kit's own hooks, so its journal is being written twice. In your next reply, offer once to switch it over fully with \`"$SCRIBE_BIN_PATH" adopt --session $session\`. That removes the kit's two hooks from .claude/settings.json (keeping a backup) and stops its weekly job. The journal stays where it is.
+Scribe note: this project still has the earlier project kit's own hooks, so its journal is being written twice. In your next reply, offer once to switch it over fully with \`"$SCRIBE_BIN_PATH" adopt --session $session\`. That removes the kit's two hooks from .claude/settings.json (keeping a backup) and stops its weekly job. The journal stays where it is.
 
 EOF
   fi

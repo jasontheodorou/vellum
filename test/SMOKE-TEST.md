@@ -5,12 +5,12 @@ The automated tests use a fake `claude`. This checklist tests the plugin with re
 ## Before you start
 
 - Claude Code 2.1.275 or later.
-- No other copy of Terminal Scribe installed. If an old curl install is present, step 2 covers it.
+- No other copy of Scribe installed. If an old curl install is present, step 2 covers it.
 - A throwaway project: `mkdir -p /tmp/scribe-smoke && cd /tmp/scribe-smoke && git init`.
 
 ## Steps
 
-1. **Install.** In Claude Code, run `/plugin install terminal-scribe --marketplace jasontheodorou/terminal-scribe`. For an unreleased copy, start Claude with `claude --plugin-dir /path/to/terminal-scribe` instead.
+1. **Install.** In Claude Code, run `/plugin install scribe --marketplace jasontheodorou/terminal-scribe`. For an unreleased copy, start Claude with `claude --plugin-dir /path/to/terminal-scribe` instead.
 2. **Old install.** On a machine with the old curl version, Claude should mention it in its first reply. Say yes. Check that `~/.claude/settings.json` no longer mentions `.scribe/hooks/` and `~/.scribe/library/` is still there.
 3. **Asked once.** In `/tmp/scribe-smoke`, start Claude. Its first reply asks whether to keep a journal.
 4. **Yes.** Answer yes. Check that `.scribe/` exists, `git status` is clean, and there is no `CLAUDE.md` or `.gitignore`.
@@ -19,8 +19,8 @@ The automated tests use a fake `claude`. This checklist tests the plugin with re
 7. **Coming back.** Start Claude again. Ask "where did we get to?". It answers from the journal without opening files you name.
 8. **Pause.** Say "pause journaling". Check `.scribe/.paused` exists. Work a little and quit. Nothing new is written, and the helper does not run.
 9. **Resume.** Say "resume journaling". Check `.scribe/.paused` is gone.
-10. **Slash commands.** Run `/terminal-scribe:status`. It reports the state in plain English.
-11. **Helper off.** Say "stop the Terminal Scribe background helper". Quit. The helper does not run. Turn it back on.
+10. **Slash commands.** Run `/scribe:status`. It reports the state in plain English.
+11. **Helper off.** Say "stop the Scribe background helper". Quit. The helper does not run. Turn it back on.
 12. **Archive.** Say "archive this project". `scribe-smoke_archive.md` appears on the desktop with a real summary, and a copy is in `~/.scribe/library/`.
 13. **Past projects.** In a second throwaway project, turn journaling on and ask "have we made decisions about X before?", where X is in the first project. Claude finds it.
 14. **Link.** Say "bring in what we learned on scribe-smoke". Start a new session and check that its summary and lessons are in context.
@@ -34,7 +34,7 @@ The automated tests use a fake `claude`. This checklist tests the plugin with re
 22. **Rename and close.** Say "rename smoke test to smoke trial", then "we're done with smoke trial". Claude asks before closing, saves a write-up to the desktop, and the project disappears from the list but not from disk.
 23. **Kit projects.** On a machine with the project kit, say "import my projects", then open one. Claude offers to switch it over. Say yes and check `.claude/settings.json` and `~/Library/LaunchAgents`.
 24. **Before pushing.** In a project with commits, say "is it safe to push?".
-25. **Uninstall.** Run `/plugin uninstall terminal-scribe`. New sessions say nothing about Terminal Scribe. Journals and the library are untouched.
+25. **Uninstall.** Run `/plugin uninstall scribe`. New sessions say nothing about Scribe. Journals and the library are untouched.
 
 ## Results
 

@@ -1,13 +1,13 @@
 {
-  "name": "terminal-scribe",
+  "name": "scribe",
   "owner": {
     "name": "Jason Theodorou",
     "url": "https://github.com/jasontheodorou"
   },
-  "description": "Terminal Scribe, a plugin that keeps a plain-English journal of your Claude Code projects.",
+  "description": "Scribe, a plugin that keeps a plain-English journal of your Claude Code projects.",
   "plugins": [
     {
-      "name": "terminal-scribe",
+      "name": "scribe",
       "source": "./",
       "description": "Run your projects in plain English: start, open, search, archive and close them, with a curated journal of every decision, experiment, lesson and preference."
     }

@@ -1,5 +1,5 @@
 #!/bin/bash
-# scribe: the Terminal Scribe helper for Claude Code.
+# scribe: the Scribe helper for Claude Code.
 #
 # Claude runs these commands on the user's behalf, and the plugin's hooks call
 # `scribe hook ...`. The plugin puts this bin/ directory on the Bash tool's PATH.
@@ -42,7 +42,7 @@ LESSONS="lessons.md"
 
 usage() {
   cat <<EOF
-scribe $(plugin_version): the Terminal Scribe helper.
+scribe $(plugin_version): the Scribe helper.
 
 Claude runs these for you when you ask in plain English.
 

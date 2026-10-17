@@ -1,6 +1,6 @@
 ---
 name: enable
-description: Turn on Terminal Scribe journaling for this project.
+description: Turn on Scribe journaling for this project.
 disable-model-invocation: true
 ---
 

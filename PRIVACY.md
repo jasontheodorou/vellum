@@ -1,6 +1,6 @@
 # Privacy and data
 
-Terminal Scribe has no server of its own and sends nothing anywhere itself. Everything it writes stays on your computer.
+Scribe has no server of its own and sends nothing anywhere itself. Everything it writes stays on your computer.
 
 ## What is recorded
 
@@ -16,7 +16,7 @@ Claude is told never to copy passwords, API keys, tokens or personal data into t
 
 ## Recall
 
-To search past conversations, Terminal Scribe makes a condensed copy of each conversation Claude Code has saved in `~/.claude/projects/`, keeping what you and Claude said and a one-line note of each action. The copies are kept in `~/.scribe/recall/`, about a two-hundredth of the size of the originals, and never leave your Mac. Delete that folder at any time; it is rebuilt the next time you search.
+To search past conversations, Scribe makes a condensed copy of each conversation Claude Code has saved in `~/.claude/projects/`, keeping what you and Claude said and a one-line note of each action. The copies are kept in `~/.scribe/recall/`, about a two-hundredth of the size of the originals, and never leave your Mac. Delete that folder at any time; it is rebuilt the next time you search.
 
 ## The project list and session notes
 
@@ -25,7 +25,7 @@ To search past conversations, Terminal Scribe makes a condensed copy of each con
 
 ## Changes outside the journal
 
-Terminal Scribe changes files outside a journal only when you ask:
+Scribe changes files outside a journal only when you ask:
 
 - "Start a new project" creates the folder, a README, a `.gitignore` and a git repository.
 - "Rename" moves the project's folder.
@@ -41,7 +41,7 @@ Terminal Scribe changes files outside a journal only when you ask:
 
 ## The curator
 
-When a session ends, Terminal Scribe makes a condensed copy of the session inside `.scribe/.state/`. It keeps what you and Claude said and a one-line note of each action, and leaves out Claude's private reasoning and the output of tools. It then starts Claude once more in the background to organise the journal. That run is limited on purpose:
+When a session ends, Scribe makes a condensed copy of the session inside `.scribe/.state/`. It keeps what you and Claude said and a one-line note of each action, and leaves out Claude's private reasoning and the output of tools. It then starts Claude once more in the background to organise the journal. That run is limited on purpose:
 
 - it can read the condensed session and the files in the project
 - it can only create or change files inside the project's `.scribe/` folder
@@ -50,7 +50,7 @@ When a session ends, Terminal Scribe makes a condensed copy of the session insid
 
 The condensed copy is deleted when the curator finishes. The curator's own run is not saved to your Claude Code session history.
 
-It uses your Claude Code account, so it uses some of your allowance. Turn it off by telling Claude "stop the Terminal Scribe background helper".
+It uses your Claude Code account, so it uses some of your allowance. Turn it off by telling Claude "stop the Scribe background helper".
 
 When you ask for an archive, Claude reads the journal to write a summary. That run can only read files. It cannot change anything.
 
@@ -58,10 +58,10 @@ When you ask for an archive, Claude reads the journal to write a summary. That r
 
 - "Pause journaling" stops all writes for the project, including the background helper, until you say "resume journaling".
 - "Turn off journaling here" deletes the project's journal.
-- `/plugin uninstall terminal-scribe` stops everything. Journals and the library stay until you delete them.
+- `/plugin uninstall scribe` stops everything. Journals and the library stay until you delete them.
 
 ## Deleting everything
 
-1. In Claude Code, type `/plugin uninstall terminal-scribe`.
+1. In Claude Code, type `/plugin uninstall scribe`.
 2. Delete the `.scribe/` folder in each project.
 3. Delete the `~/.scribe/` folder, which holds the library, settings and a log.

@@ -1,6 +1,6 @@
-## Terminal Scribe
+## Scribe
 
-Terminal Scribe runs this person's projects and keeps a journal for each. They speak plain English; you run the matching command with Bash and reply in plain English. `scribe` means `{{SCRIBE_BIN}}`: always type that full path. Add `--session {{SESSION}}` where shown.
+Scribe runs this person's projects and keeps a journal for each. They speak plain English; you run the matching command with Bash and reply in plain English. `scribe` means `{{SCRIBE_BIN}}`: always type that full path. Add `--session {{SESSION}}` where shown.
 
 - start a project: `scribe new "X" --about "Y" --session {{SESSION}}`, then cd into it
 - open / work on X: `scribe open "X" --session {{SESSION}}`, cd into it, say in two lines what happened last time and what is next

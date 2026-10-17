@@ -1,6 +1,6 @@
 ---
 name: status
-description: Show whether Terminal Scribe is journaling this project, and what the journal holds.
+description: Show whether Scribe is journaling this project, and what the journal holds.
 disable-model-invocation: true
 ---
 

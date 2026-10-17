@@ -179,7 +179,7 @@ kit_weekly_job() {
 }
 
 # Take the kit's hooks out of a project's .claude/settings.json and stop its
-# weekly job, because Terminal Scribe now does both. Keeps backups.
+# weekly job, because Scribe now does both. Keeps backups.
 retire_kit() {
   local root="$1" name="$2" settings updated plist
   settings="$root/.claude/settings.json"

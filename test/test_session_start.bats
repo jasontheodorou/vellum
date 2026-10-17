@@ -25,7 +25,7 @@ start_hook() {
 
 @test "session-start: always explains the project commands, with the session id" {
   run start_hook
-  [[ "$output" == *"Terminal Scribe runs this person"* ]]
+  [[ "$output" == *"Scribe runs this person"* ]]
   [[ "$output" == *"--session sess-1"* ]]
   [[ "$output" != *"{{"* ]]
 }

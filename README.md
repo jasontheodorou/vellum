@@ -1,8 +1,8 @@
-# Terminal Scribe
+# Scribe
 
-![Terminal Scribe](scribe_logo_001.png)
+![Scribe](scribe_logo_001.png)
 
-Terminal Scribe is a plugin for [Claude Code](https://claude.com/claude-code) on macOS. It runs your projects for you in plain English, and keeps a written history of each one, so every project can learn from the ones before it.
+Scribe is a plugin for [Claude Code](https://claude.com/claude-code) on macOS. It runs your projects for you in plain English, and keeps a written history of each one, so every project can learn from the ones before it.
 
 You never type a command. You just talk to Claude.
 
@@ -11,7 +11,7 @@ You never type a command. You just talk to Claude.
 Open Terminal, paste this line and press Enter:
 
 ```
-claude plugin install terminal-scribe --marketplace jasontheodorou/terminal-scribe
+claude plugin install scribe --marketplace jasontheodorou/terminal-scribe
 ```
 
 Then type `claude` to start, and say what you want.
@@ -76,7 +76,7 @@ Claude reads the overview, your preferences and the index whenever you open a pr
 
 ## Recall: every past conversation
 
-Claude Code saves every conversation on your Mac, but nothing searches them. Terminal Scribe does. Ask about anything you discussed, in any project, and Claude finds the conversation, the date and your exact words, then reads more if it needs to.
+Claude Code saves every conversation on your Mac, but nothing searches them. Scribe does. Ask about anything you discussed, in any project, and Claude finds the conversation, the date and your exact words, then reads more if it needs to.
 
 The first search reads your history once, which takes a minute or two. After that each conversation is added as it ends. Background helper runs are left out.
 
@@ -99,7 +99,7 @@ Claude Code remembers some facts about you, and git remembers what changed. Neit
 
 Claude's notes during a session cost very little. The curator runs Claude once more when each session ends, in the background, usually for under a minute to a few minutes. It reads a condensed copy of the session, about a hundredth of the full record. It still uses some of your plan's allowance or your API credit.
 
-To save money, say "use Haiku for Terminal Scribe". To turn the curator off, say "stop the background curator".
+To save money, say "use Haiku for Scribe". To turn the curator off, say "stop the background curator".
 
 ## Start Claude in your home folder
 
@@ -107,7 +107,7 @@ Start Claude in your home folder (just open Terminal and type `claude`). Claude 
 
 ## Coming from the project kit
 
-If you used the earlier project kit, say "import my projects". Every project keeps its `design-journal/` folder, its training manual and its port. When you open a kit project, Claude offers to switch it over fully. That removes the kit's own hooks from the project, keeping a backup, and stops its weekly job, because Terminal Scribe now does both.
+If you used the earlier project kit, say "import my projects". Every project keeps its `design-journal/` folder, its training manual and its port. When you open a kit project, Claude offers to switch it over fully. That removes the kit's own hooks from the project, keeping a backup, and stops its weekly job, because Scribe now does both.
 
 ## Coming from the curl installer
 
@@ -115,7 +115,7 @@ Versions before 1.0 were installed with a `curl` command. After you install the 
 
 ## Uninstall
 
-In Claude Code, type `/plugin uninstall terminal-scribe`.
+In Claude Code, type `/plugin uninstall scribe`.
 
 That stops everything. It does not delete your projects, journals or library, because they are your work.
 
