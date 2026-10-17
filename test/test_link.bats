@@ -37,7 +37,7 @@ teardown() { teardown_isolated_env; }
 @test "link rejects a project that is not in the library" {
   run "$SCRIBE_BIN" link nope
   [ "$status" -ne 0 ]
-  [[ "$output" == *"not on the project list or in the library"* ]]
+  [[ "$output" == *"not on the project list or in the library"* ]] || false
 }
 
 @test "unlink removes the entry" {
@@ -50,12 +50,12 @@ teardown() { teardown_isolated_env; }
 @test "library lists archived projects with their dates" {
   run "$SCRIBE_BIN" library
   [ "$status" -eq 0 ]
-  [[ "$output" == *"foo (archived 2026-04-01)"* ]]
+  [[ "$output" == *"foo (archived 2026-04-01)"* ]] || false
 }
 
 @test "library when empty says so" {
   rm -f "$HOME/.scribe/library"/*.md
   run "$SCRIBE_BIN" library
   [ "$status" -eq 0 ]
-  [[ "$output" == *"no archived projects"* ]]
+  [[ "$output" == *"no archived projects"* ]] || false
 }

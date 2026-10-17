@@ -32,7 +32,7 @@ teardown() { teardown_isolated_env; }
   for d in $(seq -w 1 31); do echo "# 2026-08-$d" > "$J/logbook/2026-08-$d.md"; done
   "$SCRIBE_BIN" index
   first=$(grep -m1 'logbook/2026-08' "$J/INDEX.md")
-  [[ "$first" == *"2026-08-31"* ]]
+  [[ "$first" == *"2026-08-31"* ]] || false
   grep -q '\.\.\.and 1 older days' "$J/INDEX.md"
   refute grep -q 'logbook/2026-08-01.md' "$J/INDEX.md"
 }

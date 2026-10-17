@@ -41,43 +41,43 @@ teardown() { teardown_isolated_env; }
 @test "recall: finds the conversation with every word, with date, title and project" {
   run "$SCRIBE_BIN" recall "french drain"
   [ "$status" -eq 0 ]
-  [[ "$output" == *'## 1 Sep 2026 · "Patio drainage" · patio · a1'* ]]
-  [[ "$output" == *"CLAUDE: We could lay a French drain"* ]]
-  [[ "$output" != *"Garden soil"* ]]
+  [[ "$output" == *'## 1 Sep 2026 · "Patio drainage" · patio · a1'* ]] || false
+  [[ "$output" == *"CLAUDE: We could lay a French drain"* ]] || false
+  [[ "$output" != *"Garden soil"* ]] || false
 }
 
 @test "recall: skips background helper conversations" {
   run "$SCRIBE_BIN" recall "drains badly"
-  [[ "$output" == *"Garden soil"* ]]
-  [[ "$output" != *"Helper run"* ]]
+  [[ "$output" == *"Garden soil"* ]] || false
+  [[ "$output" != *"Helper run"* ]] || false
 }
 
 @test "recall: words can be in different messages of the same conversation" {
   run "$SCRIBE_BIN" recall clay roots
-  [[ "$output" == *"Garden soil"* ]]
+  [[ "$output" == *"Garden soil"* ]] || false
 }
 
 @test "recall: --project limits the search" {
   run "$SCRIBE_BIN" recall drain --project garden
-  [[ "$output" == *"Garden soil"* ]]
-  [[ "$output" != *"Patio drainage"* ]]
+  [[ "$output" == *"Garden soil"* ]] || false
+  [[ "$output" != *"Patio drainage"* ]] || false
 }
 
 @test "recall: leaves out the current session" {
   run "$SCRIBE_BIN" recall "french drain" --session a1
-  [[ "$output" == *"No past conversation mentions"* ]]
+  [[ "$output" == *"No past conversation mentions"* ]] || false
 }
 
 @test "recall: says when nothing matches" {
   run "$SCRIBE_BIN" recall zebra
-  [[ "$output" == *"No past conversation mentions all of: zebra"* ]]
+  [[ "$output" == *"No past conversation mentions all of: zebra"* ]] || false
 }
 
 @test "recall: --show prints the conversation around the words" {
   run "$SCRIBE_BIN" recall --show b2 clay
   [ "$status" -eq 0 ]
-  [[ "$output" == *"# Garden soil (10 Oct 2026 to 10 Oct 2026)"* ]]
-  [[ "$output" == *"PERSON: The soil is heavy clay"* ]]
+  [[ "$output" == *"# Garden soil (10 Oct 2026 to 10 Oct 2026)"* ]] || false
+  [[ "$output" == *"PERSON: The soil is heavy clay"* ]] || false
 }
 
 @test "recall: only re-reads conversations that changed" {
@@ -106,4 +106,12 @@ teardown() { teardown_isolated_env; }
   printf '{"cwd":"%s","session_id":"sess","transcript_path":"%s"}' "$P/garden2" "$T" | "$SCRIBE_BIN" hook session-end
   wait_for_file "$HOME/.scribe/recall/session.txt"
   grep -q "magic links" "$HOME/.scribe/recall/session.txt"
+}
+
+@test "recall: a word finds longer words that start with it, not words that contain it" {
+  run "$SCRIBE_BIN" recall drain --project garden
+  [[ "$output" == *"Garden soil"* ]] || false
+  fake_conversation home d4 2026-10-13 "$P/garden" "Embeds" user "The page embeds a video" assistant "Fine."
+  run "$SCRIBE_BIN" recall beds
+  [[ "$output" != *"Embeds"* ]] || false
 }

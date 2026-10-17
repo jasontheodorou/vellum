@@ -21,7 +21,7 @@ reg() { cat "$HOME/.scribe/projects.tsv"; }
   grep -qx "/.scribe/" "$P/garden-planner/.git/info/exclude"
   reg | grep -q "^garden-planner	$P/garden-planner	3001	active	"
   grep -qx "$P/garden-planner" "$HOME/.scribe/sessions/s1"
-  [[ "$output" == *"Journal for garden-planner"* ]]
+  [[ "$output" == *"Journal for garden-planner"* ]] || false
 }
 
 @test "new: gives each project the next port" {
@@ -41,23 +41,23 @@ reg() { cat "$HOME/.scribe/projects.tsv"; }
   "$SCRIBE_BIN" new garden >/dev/null
   run "$SCRIBE_BIN" new Garden
   [ "$status" -ne 0 ]
-  [[ "$output" == *"already a project called garden"* ]]
+  [[ "$output" == *"already a project called garden"* ]] || false
 }
 
 @test "new: refuses an existing folder" {
   mkdir -p "$P/garden"
   run "$SCRIBE_BIN" new garden
   [ "$status" -ne 0 ]
-  [[ "$output" == *"add garden to my projects"* ]]
+  [[ "$output" == *"add garden to my projects"* ]] || false
 }
 
 @test "open: finds a project by part of its name and prints its journal" {
   "$SCRIBE_BIN" new garden-planner >/dev/null
   run "$SCRIBE_BIN" open Garden --session s2
   [ "$status" -eq 0 ]
-  [[ "$output" == *"Project: garden-planner"* ]]
-  [[ "$output" == *"folder: $P/garden-planner"* ]]
-  [[ "$output" == *"Journal for garden-planner"* ]]
+  [[ "$output" == *"Project: garden-planner"* ]] || false
+  [[ "$output" == *"folder: $P/garden-planner"* ]] || false
+  [[ "$output" == *"Journal for garden-planner"* ]] || false
   grep -qx "$P/garden-planner" "$HOME/.scribe/sessions/s2"
 }
 
@@ -66,15 +66,15 @@ reg() { cat "$HOME/.scribe/projects.tsv"; }
   "$SCRIBE_BIN" new garden-two >/dev/null
   run "$SCRIBE_BIN" open garden
   [ "$status" -ne 0 ]
-  [[ "$output" == *"garden-one"* ]]
-  [[ "$output" == *"garden-two"* ]]
+  [[ "$output" == *"garden-one"* ]] || false
+  [[ "$output" == *"garden-two"* ]] || false
 }
 
 @test "open: an unknown name says how to see the list" {
   "$SCRIBE_BIN" new garden >/dev/null
   run "$SCRIBE_BIN" open kitchen
   [ "$status" -ne 0 ]
-  [[ "$output" == *"list my projects"* ]]
+  [[ "$output" == *"list my projects"* ]] || false
 }
 
 @test "list: newest work first, with summaries, and hides closed projects" {
@@ -86,12 +86,12 @@ reg() { cat "$HOME/.scribe/projects.tsv"; }
   "$SCRIBE_BIN" close gone --no-archive >/dev/null
   run "$SCRIBE_BIN" list
   [ "$status" -eq 0 ]
-  [[ "${lines[0]}" == "newer  (port 3002, last worked on 2026-02-01)" ]]
-  [[ "${lines[1]}" == *"The newer one."* ]]
-  [[ "$output" != *"gone  ("* ]]
-  [[ "$output" == *"1 closed project"* ]]
+  [[ "${lines[0]}" == "◆ newer  (port 3002, last worked on 2026-02-01)" ]] || false
+  [[ "${lines[1]}" == *"The newer one."* ]] || false
+  [[ "$output" != *"gone  ("* ]] || false
+  [[ "$output" == *"1 closed project"* ]] || false
   run "$SCRIBE_BIN" list --all
-  [[ "$output" == *"gone  (port 3003, no sessions yet, closed "* ]]
+  [[ "$output" == *"▲ gone  (port 3003, no sessions yet, closed "* ]] || false
 }
 
 @test "list: reads the project kit's one-sentence description" {
@@ -99,7 +99,7 @@ reg() { cat "$HOME/.scribe/projects.tsv"; }
   printf '# kitproj\n\n**One-sentence description:** A calm life dashboard.\n' > "$P/kitproj/design-journal/overview.md"
   "$SCRIBE_BIN" adopt "$P/kitproj" >/dev/null
   run "$SCRIBE_BIN" list
-  [[ "$output" == *"A calm life dashboard."* ]]
+  [[ "$output" == *"A calm life dashboard."* ]] || false
 }
 
 @test "rename: moves the folder, updates the list and notes it in the logbook" {
@@ -155,7 +155,7 @@ reg() { cat "$HOME/.scribe/projects.tsv"; }
   mkdir -p "$P/existing"
   "$SCRIBE_BIN" adopt "$P/existing" >/dev/null
   run "$SCRIBE_BIN" adopt "$P/existing"
-  [[ "$output" == *"already on the project list"* ]]
+  [[ "$output" == *"already on the project list"* ]] || false
   [ "$(grep -c '^existing' "$HOME/.scribe/projects.tsv")" -eq 1 ]
 }
 
@@ -201,12 +201,12 @@ JSON
   echo '{"next": 3025, "projects": {"katsura": 3019, "sanctum": 3022, "deleted": 3001}}' > "$P/.ports.json"
   run "$SCRIBE_BIN" import-kit
   [ "$status" -eq 0 ]
-  [[ "$output" == *"Added 2 project(s)"* ]]
+  [[ "$output" == *"Added 2 project(s)"* ]] || false
   reg | grep -q "^katsura	$P/katsura	3019	active"
   reg | grep -q "^sanctum	$P/sanctum	3022	active"
   refute grep -q "^deleted" "$HOME/.scribe/projects.tsv"
   run "$SCRIBE_BIN" import-kit
-  [[ "$output" == *"Added 0 project(s)"* ]]
+  [[ "$output" == *"Added 0 project(s)"* ]] || false
 }
 
 @test "search: finds words across projects and the library" {
@@ -218,16 +218,16 @@ JSON
   echo "Old project also used Magic Links." > "$HOME/.scribe/library/old_archive.md"
   run "$SCRIBE_BIN" search "magic links"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"## one"* ]]
-  [[ "$output" == *".scribe/decisions/001-auth.md:1:We chose magic links"* ]]
-  [[ "$output" != *"## two"* ]]
-  [[ "$output" == *"library/old_archive.md"* ]]
+  [[ "$output" == *"## one"* ]] || false
+  [[ "$output" == *".scribe/decisions/001-auth.md:1:We chose magic links"* ]] || false
+  [[ "$output" != *"## two"* ]] || false
+  [[ "$output" == *"library/old_archive.md"* ]] || false
 }
 
 @test "search: says when nothing matches" {
   "$SCRIBE_BIN" new one >/dev/null
   run "$SCRIBE_BIN" search "zebra crossing"
-  [[ "$output" == *"Nothing in any journal mentions"* ]]
+  [[ "$output" == *"Nothing in any journal mentions"* ]] || false
 }
 
 @test "digest: shows recent logbook headings and decisions per project" {
@@ -237,10 +237,10 @@ JSON
   echo "# Old" > "$P/one/.scribe/logbook/2000-01-01.md"
   printf -- '---\ndate: %s\nsummary: Use magic links.\n---\n' "$today" > "$P/one/.scribe/decisions/001-auth.md"
   run "$SCRIBE_BIN" digest 7
-  [[ "$output" == *"## one"* ]]
-  [[ "$output" == *"Moved sign-in to magic links"* ]]
-  [[ "$output" == *"decision: Use magic links."* ]]
-  [[ "$output" != *"2000-01-01"* ]]
+  [[ "$output" == *"## one"* ]] || false
+  [[ "$output" == *"Moved sign-in to magic links"* ]] || false
+  [[ "$output" == *"decision: Use magic links."* ]] || false
+  [[ "$output" != *"2000-01-01"* ]] || false
 }
 
 @test "preship: passes a clean repository" {
@@ -250,7 +250,7 @@ JSON
   git add -A && git -c user.email=t@t -c user.name=t commit -qm init
   run "$SCRIBE_BIN" preship
   [ "$status" -eq 0 ]
-  [[ "$output" == *"Nothing to fix."* ]]
+  [[ "$output" == *"Nothing to fix."* ]] || false
 }
 
 @test "preship: catches keys, .env files and a tracked journal" {
@@ -261,9 +261,9 @@ JSON
   git add -A && git add -f .env.local .scribe/overview.md
   run "$SCRIBE_BIN" preship
   [ "$status" -ne 0 ]
-  [[ "$output" == *"config.js"* ]]
-  [[ "$output" == *".env.local"* ]]
-  [[ "$output" == *"private journal in .scribe/ is tracked"* ]]
+  [[ "$output" == *"config.js"* ]] || false
+  [[ "$output" == *".env.local"* ]] || false
+  [[ "$output" == *"private journal in .scribe/ is tracked"* ]] || false
 }
 
 @test "publish: creates a private repository with gh" {
@@ -288,7 +288,7 @@ FAKE
   printf '#!/bin/bash\nexit 0\n' > "$FAKEBIN/gh" && chmod +x "$FAKEBIN/gh"
   run "$SCRIBE_BIN" publish
   [ "$status" -ne 0 ]
-  [[ "$output" == *"no commits yet"* ]]
+  [[ "$output" == *"no commits yet"* ]] || false
 }
 
 @test "link: a live project's overview loads at session start" {
@@ -299,8 +299,8 @@ FAKE
   [ "$status" -eq 0 ]
   grep -qx "project:source" "$P/target/.scribe/.imports"
   run bash -c "printf '{\"cwd\":\"%s\",\"session_id\":\"s\"}' '$P/target' | '$SCRIBE_BIN' hook session-start"
-  [[ "$output" == *'Background from the linked project "source"'* ]]
-  [[ "$output" == *"The source project."* ]]
+  [[ "$output" == *'Background from the linked project "source"'* ]] || false
+  [[ "$output" == *"The source project."* ]] || false
 }
 
 @test "session-start: registers a journal folder that is not on the list" {
@@ -315,16 +315,16 @@ FAKE
   mkdir -p "$P/kitproj/design-journal" "$P/kitproj/.claude"
   echo '{"hooks":{"Stop":[{"hooks":[{"command":"x/design-journal/.journal-hook.sh"}]}]}}' > "$P/kitproj/.claude/settings.json"
   run bash -c "printf '{\"cwd\":\"%s\",\"session_id\":\"s\"}' '$P/kitproj' | '$SCRIBE_BIN' hook session-start"
-  [[ "$output" == *"project kit's own hooks"* ]]
-  [[ "$output" == *"Journal for kitproj"* ]]
-  [[ "$output" == *"design-journal/logbook"* ]]
+  [[ "$output" == *"project kit's own hooks"* ]] || false
+  [[ "$output" == *"Journal for kitproj"* ]] || false
+  [[ "$output" == *"design-journal/logbook"* ]] || false
 }
 
 @test "session-start: offers to import the kit when the list is empty" {
   mkdir -p "$P"
   echo '{"projects": {"katsura": 3019}}' > "$P/.ports.json"
   run bash -c "printf '{\"cwd\":\"%s\",\"session_id\":\"s\"}' '$HOME' | '$SCRIBE_BIN' hook session-start"
-  [[ "$output" == *"import-kit"* ]]
+  [[ "$output" == *"import-kit"* ]] || false
 }
 
 @test "session-end: curates every project the session opened" {
@@ -356,5 +356,5 @@ FAKE
   printf '{"cwd":"%s","session_id":"s"}' "$HOME/link-projects/garden" | "$SCRIBE_BIN" hook session-start >/dev/null
   [ "$(grep -c . "$HOME/.scribe/projects.tsv")" -eq 1 ]
   out=$(printf '{"cwd":"%s"}' "$HOME/link-projects/garden" | "$SCRIBE_BIN" statusline | sed 's/\x1b\[[0-9;]*m//g')
-  [[ "$out" == "● garden"* ]]
+  [[ "$out" == "● garden"* ]] || false
 }

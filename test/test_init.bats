@@ -72,12 +72,12 @@ teardown() { teardown_isolated_env; }
   cd "$HOME"
   run "$SCRIBE_BIN" init
   [ "$status" -ne 0 ]
-  [[ "$output" == *"home folder"* ]]
+  [[ "$output" == *"home folder"* ]] || false
 }
 
 @test "init mentions the background helper's cost when it is on" {
   run "$SCRIBE_BIN" init
-  [[ "$output" == *"allowance"* ]]
+  [[ "$output" == *"allowance"* ]] || false
 }
 
 @test "init --decline records the project outside it" {
@@ -99,5 +99,5 @@ teardown() { teardown_isolated_env; }
   printf '<!-- scribe-block-begin -->\nx\n<!-- scribe-block-end -->\n' > "$PROJECT_DIR/CLAUDE.md"
   run "$SCRIBE_BIN" init
   [ "$status" -ne 0 ]
-  [[ "$output" == *"migrate"* ]]
+  [[ "$output" == *"migrate"* ]] || false
 }

@@ -29,7 +29,7 @@ teardown() { teardown_isolated_env; }
   rm -f "$FAKEBIN/claude"
   run "$SCRIBE_BIN" curate
   [ "$status" -ne 0 ]
-  [[ "$output" == *"not on PATH"* ]]
+  [[ "$output" == *"not on PATH"* ]] || false
 }
 
 @test "curate needs a journal" {

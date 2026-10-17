@@ -7,9 +7,9 @@ teardown() { teardown_isolated_env; }
 
 @test "config: defaults" {
   run "$SCRIBE_BIN" config
-  [[ "$output" == *"background   = on"* ]]
-  [[ "$output" == *"model        = default"* ]]
-  [[ "$output" == *"projects-dir = $HOME/projects"* ]]
+  [[ "$output" == *"background   = on"* ]] || false
+  [[ "$output" == *"model        = default"* ]] || false
+  [[ "$output" == *"projects-dir = $HOME/projects"* ]] || false
 }
 
 @test "config: background off and on" {
@@ -44,5 +44,5 @@ teardown() { teardown_isolated_env; }
 @test "unknown command fails with help" {
   run "$SCRIBE_BIN" frobnicate
   [ "$status" -eq 2 ]
-  [[ "$output" == *"scribe help"* ]]
+  [[ "$output" == *"scribe help"* ]] || false
 }

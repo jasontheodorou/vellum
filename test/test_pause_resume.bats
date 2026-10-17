@@ -27,5 +27,5 @@ teardown() { teardown_isolated_env; }
   rm -rf "$PROJECT_DIR/.scribe"
   run "$SCRIBE_BIN" pause
   [ "$status" -ne 0 ]
-  [[ "$output" == *"scribe init"* ]]
+  [[ "$output" == *"scribe init"* ]] || false
 }

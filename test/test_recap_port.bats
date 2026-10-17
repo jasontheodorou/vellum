@@ -63,15 +63,15 @@ message_for() {
   mkdir -p "$HOME/.scribe/notices"
   echo "Journal updated after your last session: garden, 1 decision." > "$HOME/.scribe/notices/$("$SCRIBE_BIN" __sanitize "$P/garden")"
   msg="$(message_for "$P/garden")"
-  [[ "$msg" == "Last time, 16 Oct:"*$'\n'"Journal updated after your last session: garden, 1 decision." ]]
+  [[ "$msg" == "Last time, 16 Oct:"*$'\n'"Journal updated after your last session: garden, 1 decision." ]] || false
 }
 
 @test "port: Claude is told the project's port" {
   out=$(printf '{"cwd":"%s","session_id":"s"}' "$P/garden" | "$SCRIBE_BIN" hook session-start)
-  [[ "$out" == *"This project's port is 3001"* ]]
-  [[ "$out" == *"PORT=3001 npm run dev"* ]]
+  [[ "$out" == *"This project's port is 3001"* ]] || false
+  [[ "$out" == *"PORT=3001 npm run dev"* ]] || false
   run "$SCRIBE_BIN" open garden
-  [[ "$output" == *"This project's port is 3001"* ]]
+  [[ "$output" == *"This project's port is 3001"* ]] || false
 }
 
 @test "port: commands in the session get PORT set" {

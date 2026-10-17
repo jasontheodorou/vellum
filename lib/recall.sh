@@ -102,6 +102,11 @@ recall_update() {
   return 0
 }
 
+# Escape a word for use in an extended regular expression.
+regex_escape() {
+  printf '%s' "$1" | sed 's/[][\.*^$(){}?+|/]/\\&/g'
+}
+
 # Turn "2026-10-16" into "16 Oct 2026".
 nice_date() {
   printf '%s' "$1" | awk -F- '{
@@ -135,7 +140,9 @@ cmd_recall() {
     [ ${#w} -ge 2 ] && words+=("$w")
   done
   set +f
-  for w in ${words[@]+"${words[@]}"}; do match+=(-e "$w"); done
+  # Match the start of words, so "drain" finds "drains" and "drainage" but
+  # "beds" does not find "embeds".
+  for w in ${words[@]+"${words[@]}"}; do match+=(-e "\\b$(regex_escape "$w")"); done
 
   recall_update
 
@@ -156,11 +163,11 @@ cmd_recall() {
     # Every word must appear somewhere in the conversation.
     ok=1
     for w in "${words[@]}"; do
-      grep -qiwF -- "$w" "$f" || { ok=0; break; }
+      grep -qiE -- "\\b$(regex_escape "$w")" "$f" || { ok=0; break; }
     done
     [ $ok -eq 1 ] || continue
     # Lines with any of the words, plus a bonus for the exact phrase.
-    score=$(( $(grep -ciwF "${match[@]}" "$f") + 5 * $(grep -ciF -- "${words[*]}" "$f") ))
+    score=$(( $(grep -ciE "${match[@]}" "$f") + 5 * $(grep -ciF -- "${words[*]}" "$f") ))
     scored="$scored$score	$(header_value "$f" last)	$f
 "
   done
@@ -176,7 +183,7 @@ cmd_recall() {
     projects="$(header_value "$f" projects)"
     echo "## $(nice_date "$last")${title:+ · \"$title\"}${projects:+ · $projects} · $id"
     # The best few lines: those with the most of the words in them.
-    grep -iwF "${match[@]}" "$f" | grep -v '^# ' | awk -v words="$(printf '%s ' "${words[@]}" | tr '[:upper:]' '[:lower:]')" '
+    grep -iE "${match[@]}" "$f" | grep -v '^# ' | awk -v words="$(printf '%s ' "${words[@]}" | tr '[:upper:]' '[:lower:]')" '
       BEGIN { n = split(words, w, " "); phrase = words; sub(/ $/, "", phrase) }
       { l = tolower($0); s = 0; for (i = 1; i <= n; i++) if (index(l, w[i])) s++
         if (n > 1 && index(l, phrase)) s += n

@@ -322,7 +322,7 @@ cmd_list() {
     summary="$(project_summary "$JOURNAL")"
     when="no sessions yet"
     [ -n "$last" ] && when="last worked on $last"
-    printf '%s\t%s\n' "${last:-0000-00-00}" "$name  (port $port, $when${closed:+, closed $closed})${summary:+$TAB$summary}"
+    printf '%s\t%s\n' "${last:-0000-00-00}" "$(project_shape "$name") $name  (port $port, $when${closed:+, closed $closed})${summary:+$TAB$summary}"
   done <"$REGISTRY" | sort -r | cut -f2- | while IFS="$TAB" read -r head summary; do
     echo "$head"
     [ -n "$summary" ] && echo "    $summary"
@@ -619,6 +619,31 @@ reg_name_containing() {
   awk -F'\t' -v d="$d/" 'index(d, $2 "/") == 1 && length($2) > best {best = length($2); name = $1} END {if (name != "") print name}' "$REGISTRY"
 }
 
+# Shapes for the status line. All are one column wide in Mac terminal fonts.
+SHAPES="● ◆ ▲ ■ ★ ▼ ◉ ✚ ♣ ♠"
+
+# Each project keeps its own shape, stored on the project list (column 7). A
+# project without one gets the shape fewest other projects use, so windows look
+# different from each other. Folders not on the list get one from their name.
+project_shape() {
+  local name="$1" line shape n
+  line="$(reg_line "$name")"
+  if [ -n "$line" ]; then
+    shape="$(field "$line" 7)"
+    if [ -z "$shape" ]; then
+      shape="$(for s in $SHAPES; do printf '%s\t%s\n' "$(cut -d "$TAB" -f7 "$REGISTRY" | grep -cxF "$s")" "$s"; done |
+        awk -F'\t' 'NR == 1 || $1 < min {min = $1; pick = $2} END {print pick}')"
+      reg_set "$name" 7 "$shape"
+    fi
+    echo "$shape"
+    return 0
+  fi
+  n=$(printf '%s' "$name" | cksum | cut -d' ' -f1)
+  set -- $SHAPES
+  shift $(( (n / 7) % $# ))
+  echo "$1"
+}
+
 # Each project gets its own colour, the same every time.
 project_colour() {
   local colours="37 170 208 71 68 178 133 30" n
@@ -678,7 +703,7 @@ cmd_statusline() {
   [ -n "$session" ] && [ "$(tail -1 "$SESSIONS/$(__sanitize "$session")" 2>/dev/null)" != "$dir" ] && remember_session "$session" "$dir"
 
   colour="$(project_colour "$name")"
-  out="$(printf '\033[38;5;%sm●\033[0m \033[1;38;5;%sm%s\033[0m' "$colour" "$colour" "$name")"
+  out="$(printf '\033[38;5;%sm%s\033[0m \033[1;38;5;%sm%s\033[0m' "$colour" "$(project_shape "$name")" "$colour" "$name")"
 
   if [ -n "$port" ] && port_running_cached "$port"; then
     out="$out  $(printf '\033[38;5;71mlive on :%s\033[0m' "$port")"

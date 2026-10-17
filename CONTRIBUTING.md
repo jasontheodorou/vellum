@@ -45,7 +45,7 @@ claude plugin validate . --strict
 
 Each test runs in a throwaway home folder, so your own `~/.scribe` and `~/.claude` are never touched. Tests use a fake `claude`, so they cost nothing.
 
-In a bats test, write `refute grep ...` rather than `! grep ...`. Bats ignores a failed `!` line unless it is the last line of the test.
+In a bats test, write `refute grep ...` rather than `! grep ...`, and end every `[[ ... ]]` check with `|| false`. On the bash 3.2 that macOS ships, bats ignores a failed `!` or `[[ ]]` line unless it is the last line of the test.
 
 ## Before you open a pull request
 

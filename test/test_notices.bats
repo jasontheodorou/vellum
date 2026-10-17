@@ -36,14 +36,14 @@ end_session() {
   out=$(printf '{"cwd":"%s","session_id":"s2"}' "$P/garden" | "$SCRIBE_BIN" hook session-start)
   printf '%s' "$out" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["systemMessage"].startswith("Journal updated after your last session: garden, 1 decision and lessons."), d["systemMessage"]; assert "Journal for garden" in d["hookSpecificOutput"]["additionalContext"]'
   again=$(printf '{"cwd":"%s","session_id":"s3"}' "$P/garden" | "$SCRIBE_BIN" hook session-start)
-  [[ "$again" != *"systemMessage"* ]]
+  [[ "$again" != *"systemMessage"* ]] || false
 }
 
 @test "notices: the home folder shows messages for every project" {
   end_session
   wait_for_file "$HOME/.scribe/notices/$("$SCRIBE_BIN" __sanitize "$P/garden")"
   out=$(printf '{"cwd":"%s","session_id":"s2"}' "$HOME" | "$SCRIBE_BIN" hook session-start)
-  [[ "$out" == *'"systemMessage":"Journal updated after your last session: garden, 1 decision and lessons.'* ]]
+  [[ "$out" == *'"systemMessage":"Journal updated after your last session: garden, 1 decision and lessons.'* ]] || false
 }
 
 @test "notices: another project's message waits for that project" {
@@ -51,7 +51,7 @@ end_session() {
   end_session
   wait_for_file "$HOME/.scribe/notices/$("$SCRIBE_BIN" __sanitize "$P/garden")"
   out=$(printf '{"cwd":"%s","session_id":"s2"}' "$P/other" | "$SCRIBE_BIN" hook session-start)
-  [[ "$out" != *"systemMessage"* ]]
+  [[ "$out" != *"systemMessage"* ]] || false
   [ -n "$(ls "$HOME/.scribe/notices")" ]
 }
 
@@ -79,7 +79,7 @@ end_session() {
   cd "$P/garden"
   run "$SCRIBE_BIN" undo
   [ "$status" -eq 0 ]
-  [[ "$output" == *"The journal is back as it was on"* ]]
+  [[ "$output" == *"The journal is back as it was on"* ]] || false
   [ ! -f "$P/garden/.scribe/decisions/001-raised-beds.md" ]
   grep -q "my own lesson" "$P/garden/.scribe/lessons.md"
   refute grep -q "clay drains badly" "$P/garden/.scribe/lessons.md"
@@ -102,7 +102,7 @@ end_session() {
   cd "$P/garden"
   run "$SCRIBE_BIN" undo
   [ "$status" -ne 0 ]
-  [[ "$output" == *"nothing to undo"* ]]
+  [[ "$output" == *"nothing to undo"* ]] || false
 }
 
 @test "undo: keeps only the ten most recent snapshots" {

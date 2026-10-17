@@ -9,13 +9,13 @@ teardown() { teardown_isolated_env; }
   install_fake_claude
   run "$SCRIBE_BIN" doctor
   [ "$status" -eq 0 ]
-  [[ "$output" == *"Everything looks healthy"* ]]
+  [[ "$output" == *"Everything looks healthy"* ]] || false
 }
 
 @test "doctor: reports a missing claude" {
   run "$SCRIBE_BIN" doctor
   [ "$status" -ne 0 ]
-  [[ "$output" == *"Claude Code is not on PATH"* ]]
+  [[ "$output" == *"Claude Code is not on PATH"* ]] || false
 }
 
 @test "doctor: reports a leftover old install" {
@@ -24,12 +24,12 @@ teardown() { teardown_isolated_env; }
   echo '{"hooks":{"Stop":[{"scribe":true,"hooks":[{"type":"command","command":"/x/.scribe/hooks/stop.sh"}]}]}}' > "$HOME/.claude/settings.json"
   run "$SCRIBE_BIN" doctor
   [ "$status" -ne 0 ]
-  [[ "$output" == *"remove-old-install"* ]]
+  [[ "$output" == *"remove-old-install"* ]] || false
 }
 
 @test "doctor: prints the plugin version" {
   install_fake_claude
   version=$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$SCRIBE_REPO/.claude-plugin/plugin.json")
   run "$SCRIBE_BIN" doctor
-  [[ "${lines[0]}" == *"$version"* ]]
+  [[ "${lines[0]}" == *"$version"* ]] || false
 }

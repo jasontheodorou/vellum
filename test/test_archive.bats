@@ -33,7 +33,7 @@ teardown() { teardown_isolated_env; }
   rm -f "$J"/logbook/*.md "$J"/decisions/*.md "$J/lessons.md"
   run "$SCRIBE_BIN" archive
   [ "$status" -ne 0 ]
-  [[ "$output" == *"nothing to archive"* ]]
+  [[ "$output" == *"nothing to archive"* ]] || false
 }
 
 @test "archive writes to the desktop and the library" {

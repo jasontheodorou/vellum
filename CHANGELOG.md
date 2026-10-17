@@ -9,7 +9,7 @@ Scribe (formerly Terminal Scribe) is now a Claude Code plugin.
 ### Added
 
 - Recall: search every past Claude Code conversation on the computer ("why did we drop the Priorities page?"), with the date, project and the person's words. Conversations are condensed once into `~/.scribe/recall/` and refreshed as they change; background helper runs are skipped.
-- A quiet status line: the project's name in its own colour, plus the server, branch, unpushed commits or a paused journal only when they need attention.
+- A quiet status line: the project's name in its own colour and its own shape (● ◆ ▲ ■ …), so windows are easy to tell apart, plus the server, branch, unpushed commits or a paused journal only when they need attention.
 - At the start of a session in a project, one line says what happened last time and what is next.
 - One line at the start of the next session says what the curator changed.
 - Each project's port is given to Claude and set as `PORT` for its commands, so servers start on the right port.
