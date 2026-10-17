@@ -12,13 +12,6 @@ teardown() { teardown_isolated_env; }
   [ "$output" = "$HOME/Desktop" ]
 }
 
-@test "desktop path: xdg-user-dir when ~/Desktop is missing" {
-  install_fake_xdg
-  run "$SCRIBE_BIN" __desktop_path
-  [ "$status" -eq 0 ]
-  [ "$output" = "$TEST_HOME/xdg-desktop" ]
-}
-
 @test "desktop path: home folder when there is no desktop" {
   run "$SCRIBE_BIN" __desktop_path
   [ "$status" -eq 0 ]

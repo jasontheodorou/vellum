@@ -2,7 +2,7 @@
 
 This project uses [semantic versioning](https://semver.org). The version lives in `.claude-plugin/plugin.json`.
 
-## 1.0.0 (unreleased)
+## 0.9.0 beta (unreleased)
 
 Scribe (formerly Terminal Scribe) is now a Claude Code plugin.
 
@@ -32,7 +32,7 @@ Scribe (formerly Terminal Scribe) is now a Claude Code plugin.
 - `scribe migrate` moves a project from the old `journal/` folder to `.scribe/`.
 - `scribe remove-old-install` removes the version installed by the curl script, and keeps the library.
 - `PRIVACY.md`, `CONTRIBUTING.md` and `SECURITY.md`.
-- Tests run on macOS and Linux for every change.
+- Tests run on macOS for every change. Scribe is for macOS only.
 
 ### Changed
 

@@ -82,15 +82,15 @@ teardown() { teardown_isolated_env; }
 
 @test "recall: only re-reads conversations that changed" {
   "$SCRIBE_BIN" recall drain >/dev/null
-  before=$(stat -f %m "$HOME/.scribe/recall/a1.txt" 2>/dev/null || stat -c %Y "$HOME/.scribe/recall/a1.txt")
+  before=$(stat -f %m "$HOME/.scribe/recall/a1.txt")
   sleep 1
   "$SCRIBE_BIN" recall drain >/dev/null
-  after=$(stat -f %m "$HOME/.scribe/recall/a1.txt" 2>/dev/null || stat -c %Y "$HOME/.scribe/recall/a1.txt")
+  after=$(stat -f %m "$HOME/.scribe/recall/a1.txt")
   [ "$before" = "$after" ]
   sleep 1
   touch "$SCRIBE_TRANSCRIPTS/home/a1.jsonl"
   "$SCRIBE_BIN" recall drain >/dev/null
-  newer=$(stat -f %m "$HOME/.scribe/recall/a1.txt" 2>/dev/null || stat -c %Y "$HOME/.scribe/recall/a1.txt")
+  newer=$(stat -f %m "$HOME/.scribe/recall/a1.txt")
   [ "$newer" != "$before" ]
 }
 

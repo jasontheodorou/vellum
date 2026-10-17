@@ -50,14 +50,6 @@ FAKE
   chmod +x "$FAKEBIN/claude"
 }
 
-install_fake_xdg() {
-  cat >"$FAKEBIN/xdg-user-dir" <<'FAKE'
-#!/bin/bash
-echo "$TEST_HOME/xdg-desktop"
-FAKE
-  chmod +x "$FAKEBIN/xdg-user-dir"
-  mkdir -p "$TEST_HOME/xdg-desktop"
-}
 
 # Wait up to two seconds for a file to appear (the session-end helper runs in the background).
 wait_for_file() {

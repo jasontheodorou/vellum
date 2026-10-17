@@ -83,35 +83,10 @@ __sanitize() {
 }
 
 __desktop_path() {
-  # Windows Subsystem for Linux: use the Windows desktop.
-  if [ -f /proc/version ] && grep -qi microsoft /proc/version 2>/dev/null; then
-    if command -v wslvar >/dev/null 2>&1 && command -v wslpath >/dev/null 2>&1; then
-      local winprof
-      winprof="$(wslvar USERPROFILE 2>/dev/null || true)"
-      if [ -n "$winprof" ]; then
-        wslpath "$winprof\\Desktop" 2>/dev/null && return 0
-      fi
-    fi
-    if [ -d "/mnt/c/Users/$USER/Desktop" ]; then
-      echo "/mnt/c/Users/$USER/Desktop"
-      return 0
-    fi
-  fi
-
-  if command -v xdg-user-dir >/dev/null 2>&1; then
-    local xdg
-    xdg="$(xdg-user-dir DESKTOP 2>/dev/null || true)"
-    if [ -n "$xdg" ] && [ -d "$xdg" ]; then
-      echo "$xdg"
-      return 0
-    fi
-  fi
-
   if [ -d "$HOME/Desktop" ]; then
     echo "$HOME/Desktop"
     return 0
   fi
-
   echo "$HOME"
   echo "scribe: could not find a Desktop folder, so using your home folder" >&2
 }

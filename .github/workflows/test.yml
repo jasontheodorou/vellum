@@ -7,22 +7,12 @@ on:
 
 jobs:
   test:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
 
       - name: Install bats and ShellCheck
-        run: |
-          if [ "$RUNNER_OS" = "macOS" ]; then
-            brew install bats-core shellcheck
-          else
-            sudo apt-get update
-            sudo apt-get install -y bats shellcheck
-          fi
+        run: brew install bats-core shellcheck
 
       - name: ShellCheck
         run: shellcheck -x -P SCRIPTDIR -S warning bin/scribe test/helpers.bash
@@ -31,7 +21,7 @@ jobs:
         run: bats test/
 
   validate:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

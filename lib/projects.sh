@@ -514,7 +514,7 @@ cmd_search() {
 # What happened across every active project in the last N days.
 cmd_digest() {
   local days="${1:-7}" since line name dir f found=0 any
-  since="$(date -v-"${days}"d '+%Y-%m-%d' 2>/dev/null || date -d "-$days days" '+%Y-%m-%d')"
+  since="$(date -v-"${days}"d '+%Y-%m-%d')"
   [ -f "$REGISTRY" ] || { echo "There are no projects on the list yet."; return 0; }
   echo "Work since $since:"
   while IFS= read -r line; do
@@ -671,7 +671,7 @@ port_running_cached() {
   local port="$1" cache="$SCRIBE_HOME/.cache/port-$1" now
   now=$(date +%s)
   mkdir -p "$SCRIBE_HOME/.cache" 2>/dev/null || return 1
-  if [ -f "$cache" ] && [ $((now - $(stat -f %m "$cache" 2>/dev/null || stat -c %Y "$cache" 2>/dev/null || echo 0))) -lt 15 ]; then
+  if [ -f "$cache" ] && [ $((now - $(stat -f %m "$cache" 2>/dev/null || echo 0))) -lt 15 ]; then
     [ "$(cat "$cache")" = "1" ]
     return
   fi

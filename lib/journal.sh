@@ -600,6 +600,12 @@ PY
 cmd_doctor() {
   local issues=0
   echo "Scribe $(plugin_version)"
+  if [ "$(uname -s)" = "Darwin" ]; then
+    echo "  ok   running on macOS $(sw_vers -productVersion 2>/dev/null)"
+  else
+    echo "  FAIL Scribe is for macOS only"
+    issues=$((issues + 1))
+  fi
   if command -v claude >/dev/null 2>&1; then
     echo "  ok   Claude Code is installed"
   else

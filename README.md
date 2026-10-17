@@ -6,6 +6,8 @@ Scribe is a plugin for [Claude Code](https://claude.com/claude-code) on macOS. I
 
 You never type a command. You just talk to Claude.
 
+Scribe is in beta (version 0.9). It works, but expect rough edges, and please [report anything odd](https://github.com/jasontheodorou/terminal-scribe/issues).
+
 ## Install
 
 Open Terminal, paste this line and press Enter:
@@ -121,7 +123,7 @@ That stops everything. It does not delete your projects, journals or library, be
 
 ## Works on
 
-macOS. It also works on Linux and on Windows through WSL. It uses tools macOS already has. It uses `gh` (GitHub's command line tool) only to put projects on GitHub.
+macOS only, with Claude Code 2.1.292 or later. It uses tools every Mac already has. It uses `gh` (GitHub's command line tool) only to put projects on GitHub.
 
 ## Contributing
 
