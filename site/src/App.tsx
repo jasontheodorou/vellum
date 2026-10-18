@@ -8,12 +8,13 @@ import { BrandPromise } from './BrandPromise'
 
 const INSTALL = 'curl -fsSL https://raw.githubusercontent.com/jasontheodorou/vellum/main/install.sh | bash'
 
+// The banner drawn in light shade, so it reads as print on paper, not a solid block
 const LOGO = `██╗   ██╗███████╗██╗     ██╗     ██╗   ██╗███╗   ███╗
 ██║   ██║██╔════╝██║     ██║     ██║   ██║████╗ ████║
 ██║   ██║█████╗  ██║     ██║     ██║   ██║██╔████╔██║
 ╚██╗ ██╔╝██╔══╝  ██║     ██║     ██║   ██║██║╚██╔╝██║
  ╚████╔╝ ███████╗███████╗███████╗╚██████╔╝██║ ╚═╝ ██║
-  ╚═══╝  ╚══════╝╚══════╝╚══════╝ ╚═════╝ ╚═╝     ╚═╝`
+  ╚═══╝  ╚══════╝╚══════╝╚══════╝ ╚═════╝ ╚═╝     ╚═╝`.replace(/█/g, '░')
 
 const FEATURES = [
   {
