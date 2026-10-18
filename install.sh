@@ -127,32 +127,21 @@ case " $settings_out " in
   *) own_statusline=""; step "The status line shows each project's shape, name and live port." ;;
 esac
 
-# Welcome.
-if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
-  ink=$'\033[1m' berry=$'\033[35m' blue=$'\033[34m' dim=$'\033[90m' off=$'\033[0m'
+# Welcome: in the new Vellum window if Terminal opened one, so it shows in
+# Vellum's own colours, otherwise here.
+dim="" off=""
+if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then dim=$'\033[90m' off=$'\033[0m'; fi
+window="$(cat "$VELLUM_HOME/theme-window" 2>/dev/null)"
+rm -f "$VELLUM_HOME/theme-window"
+if [ -n "$window" ] &&
+  osascript -e "tell application \"Terminal\" to do script \"clear; '$SHIM' welcome\" in tab 1 of window id $window" \
+    -e "tell application \"Terminal\" to set index of window id $window to 1" >/dev/null 2>&1; then
+  say ""
+  say "Vellum is installed. Carry on in the new yellow Vellum window."
 else
-  ink="" berry="" blue="" dim="" off=""
+  "$SHIM" welcome
 fi
-cat <<EOF
-
-${berry}  __     __   _ _
-  \\ \\   / /__| | |_   _ _ __ ___
-   \\ \\ / / _ \\ | | | | | '_ \` _ \\
-    \\ V /  __/ | | |_| | | | | | |
-     \\_/ \\___|_|_|\\__,_|_| |_| |_|${off}
-
-  ${ink}Welcome to Vellum.${off} Your Terminal, journal and projects are ready.
-
-  ${blue}●${off} ${ink}Talk, do not type commands.${off} Say what you want in plain English.
-  ${blue}●${off} ${ink}Every project keeps a journal${off} of decisions, lessons and what is next.
-  ${blue}●${off} ${ink}Every project has its own shape and port${off}, so windows and servers never clash.
-
-  ${ink}Next${off}
-    1. Switch to the new Vellum window that just opened.
-    2. Type ${ink}claude${off} and press Enter.
-    3. Say "start a new project called garden planner" or "what projects do I have?"
-
-EOF
+say ""
 pgrep -qx claude 2>/dev/null &&
   say "  Claude Code is already running somewhere. Restart it to pick up the new colours." && say ""
 [ -n "$own_statusline" ] && {
@@ -160,6 +149,5 @@ pgrep -qx claude 2>/dev/null &&
   say "  ${dim}$SHIM statusline${off}"
   say ""
 }
-say "  ${dim}To go back to your old Terminal look: $SHIM theme undo${off}"
 say "  ${dim}Your previous Claude Code settings are saved in $SETTINGS.before-vellum${off}"
 say ""

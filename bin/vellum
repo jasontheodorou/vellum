@@ -84,6 +84,7 @@ Journal
 Terminal
   vellum theme               Install Paper Mono and make Vellum Terminal's default
   vellum theme undo          Go back to the previous default profile
+  vellum welcome             Show the welcome screen
   vellum doctor              Check that everything is set up
   vellum version             Print the version
 EOF
@@ -127,6 +128,7 @@ main() {
     remove-old-install) cmd_remove_old_install "$@" ;;
     doctor)             cmd_doctor "$@" ;;
     theme)              cmd_theme "$@" ;;
+    welcome)            cmd_welcome "$@" ;;
     hook)               cmd_hook "$@" ;;
     version|-v|--version) plugin_version ;;
     help|-h|--help)     usage ;;

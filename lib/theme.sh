@@ -18,6 +18,8 @@ THEME_PREVIOUS="$VELLUM_HOME/theme-previous"
 # person said no to.
 THEME_INSTALLED="$VELLUM_HOME/theme-installed"
 THEME_SKIPPED="$VELLUM_HOME/theme-skipped"
+# The window Terminal opened when the profile was first added.
+THEME_WINDOW="$VELLUM_HOME/theme-window"
 
 terminal_script() {
   osascript -e "tell application \"Terminal\" to $1" 2>/dev/null
@@ -54,7 +56,9 @@ window_ids() {
 }
 
 # Opening a .terminal file is the only supported way to add a profile. Terminal
-# also opens a window with it. Pass "close" to close that window again.
+# also opens a window with it. Pass "close" to close that window again;
+# otherwise its id is kept in THEME_WINDOW, so the installer can greet the
+# person there.
 import_profile() {
   local before _ id
   before="$(window_ids)"
@@ -64,17 +68,19 @@ import_profile() {
     sleep 0.1
   done
   has_terminal_profile "$THEME_NAME" || return 1
-  if [ "${1:-}" = "close" ]; then
-    # The window can appear a moment after the profile does.
-    for _ in $(seq 1 30); do
-      for id in $(window_ids); do
-        printf '%s\n' "$before" | grep -qxF "$id" && continue
+  # The window can appear a moment after the profile does.
+  for _ in $(seq 1 30); do
+    for id in $(window_ids); do
+      printf '%s\n' "$before" | grep -qxF "$id" && continue
+      if [ "${1:-}" = "close" ]; then
         terminal_script "close window id $id" >/dev/null
-        return 0
-      done
-      sleep 0.1
+      else
+        mkdir -p "$VELLUM_HOME" && echo "$id" >"$THEME_WINDOW"
+      fi
+      return 0
     done
-  fi
+    sleep 0.1
+  done
   return 0
 }
 
@@ -158,4 +164,34 @@ theme_undo() {
   set_default_profile "$previous" || die "could not make $previous Terminal's default profile"
   rm -f "$THEME_PREVIOUS"
   echo "New Terminal windows open in $previous again. The Vellum profile and Paper Mono are still installed."
+}
+
+# The welcome screen, shown once by the installer in the new Vellum window.
+cmd_welcome() {
+  local ink="" berry="" blue="" dim="" off=""
+  if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
+    ink=$'\033[1m' berry=$'\033[35m' blue=$'\033[34m' dim=$'\033[90m' off=$'\033[0m'
+  fi
+  cat <<EOF
+
+${berry}  ██╗   ██╗███████╗██╗     ██╗     ██╗   ██╗███╗   ███╗
+  ██║   ██║██╔════╝██║     ██║     ██║   ██║████╗ ████║
+  ██║   ██║█████╗  ██║     ██║     ██║   ██║██╔████╔██║
+  ╚██╗ ██╔╝██╔══╝  ██║     ██║     ██║   ██║██║╚██╔╝██║
+   ╚████╔╝ ███████╗███████╗███████╗╚██████╔╝██║ ╚═╝ ██║
+    ╚═══╝  ╚══════╝╚══════╝╚══════╝ ╚═════╝ ╚═╝     ╚═╝${off}
+
+  ${ink}Welcome to Vellum.${off} Your Terminal, journal and projects are ready.
+
+  ${blue}●${off} ${ink}Talk, do not type commands.${off} Say what you want in plain English.
+  ${blue}●${off} ${ink}Every project keeps a journal${off} of decisions, lessons and what is next.
+  ${blue}●${off} ${ink}Every project has its own shape and port${off}, so windows and servers never clash.
+
+  ${ink}Start${off}
+    Type ${ink}claude${off} and press Enter, then say
+    "start a new project called garden planner" or "what projects do I have?"
+
+  ${dim}To go back to your old Terminal look: $VELLUM_HOME/bin/vellum theme undo${off}
+
+EOF
 }

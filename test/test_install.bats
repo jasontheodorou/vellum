@@ -36,11 +36,14 @@ case "$script" in
   *"exists settings set"*) grep -qxF "$name" "$TERMINAL/profiles" && echo true || echo false ;;
   *"set default settings to"*) echo "$name" > "$TERMINAL/default" ;;
   *"set startup settings to"*) echo "$name" > "$TERMINAL/startup" ;;
+  *"id of every window"*) cat "$TERMINAL/windows" 2>/dev/null ;;
+  *"do script"*) echo "$script" >> "$TERMINAL/scripts" ;;
 esac
 FAKE
   cat > "$FAKEBIN/open" <<'FAKE'
 #!/bin/bash
 basename "$1" .terminal >> "$TERMINAL/profiles"
+echo 42 >> "$TERMINAL/windows"
 FAKE
   chmod +x "$FAKEBIN/claude" "$FAKEBIN/osascript" "$FAKEBIN/open"
   export VELLUM_REPO
@@ -58,7 +61,6 @@ settings() { cat "$CLAUDE_CONFIG_DIR/settings.json"; }
   settings | grep -q '"theme": "light-ansi"'
   settings | grep -q "\"command\": \"$HOME/.vellum/bin/vellum statusline\""
   [ -x "$HOME/.vellum/bin/vellum" ]
-  [[ "$output" == *"Welcome to Vellum"* ]] || false
 }
 
 @test "install: the helper runs the installed plugin" {
@@ -115,4 +117,18 @@ JSON
   [ "$status" -ne 0 ]
   [[ "$output" == *"not valid JSON"* ]] || false
   [ ! -e "$TEST_HOME/claude.args" ]
+}
+
+@test "install: greets the person in the new Vellum window" {
+  run bash "$VELLUM_REPO/install.sh"
+  [ "$status" -eq 0 ]
+  grep -q "welcome\" in tab 1 of window id 42" "$TERMINAL/scripts"
+  [[ "$output" == *"Carry on in the new yellow Vellum window"* ]] || false
+  [ ! -f "$HOME/.vellum/theme-window" ]
+}
+
+@test "install: greets here when no new window opened" {
+  bash "$VELLUM_REPO/install.sh"
+  run bash "$VELLUM_REPO/install.sh"
+  [[ "$output" == *"Welcome to Vellum"* ]] || false
 }
