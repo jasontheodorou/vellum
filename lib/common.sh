@@ -1,5 +1,5 @@
 #!/bin/bash
-# Sourced by bin/scribe. Written for bash 3.2+.
+# Sourced by bin/vellum. Written for bash 3.2+.
 # shellcheck shell=bash
 
 # Shared helpers, settings and per-project state.
@@ -7,7 +7,7 @@
 # Set while a background helper runs, so its own session does not start another.
 # CLAUDE_JOURNAL_HOOK is the name the pre-plugin version used.
 is_helper_session() {
-  [ "${SCRIBE_SUBAGENT:-0}" = "1" ] || [ "${CLAUDE_JOURNAL_HOOK:-0}" = "1" ]
+  [ "${VELLUM_SUBAGENT:-0}" = "1" ] || [ "${CLAUDE_JOURNAL_HOOK:-0}" = "1" ]
 }
 
 # ---------------------------------------------------------------------------
@@ -15,11 +15,11 @@ is_helper_session() {
 # ---------------------------------------------------------------------------
 
 log() {
-  mkdir -p "$SCRIBE_HOME" 2>/dev/null || return 0
+  mkdir -p "$VELLUM_HOME" 2>/dev/null || return 0
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >>"$GLOBAL_LOG" 2>/dev/null || true
 }
 
-die() { echo "scribe: $*" >&2; exit 1; }
+die() { echo "vellum: $*" >&2; exit 1; }
 
 plugin_version() {
   sed -n 's/^[[:space:]]*"version":[[:space:]]*"\([^"]*\)".*/\1/p' \
@@ -84,8 +84,8 @@ __sanitize() {
 
 __desktop_path() {
   # Tests send archives somewhere other than the real desktop.
-  if [ -n "${SCRIBE_DESKTOP:-}" ]; then
-    mkdir -p "$SCRIBE_DESKTOP" && echo "$SCRIBE_DESKTOP"
+  if [ -n "${VELLUM_DESKTOP:-}" ]; then
+    mkdir -p "$VELLUM_DESKTOP" && echo "$VELLUM_DESKTOP"
     return 0
   fi
   if [ -d "$HOME/Desktop" ]; then
@@ -93,11 +93,11 @@ __desktop_path() {
     return 0
   fi
   echo "$HOME"
-  echo "scribe: could not find a Desktop folder, so using your home folder" >&2
+  echo "vellum: could not find a Desktop folder, so using your home folder" >&2
 }
 
 # ---------------------------------------------------------------------------
-# Settings (~/.scribe/config, one key=value per line)
+# Settings (~/.vellum/config, one key=value per line)
 # ---------------------------------------------------------------------------
 
 config_get() {
@@ -110,7 +110,7 @@ config_get() {
 
 config_set() {
   local key="$1" value="$2"
-  mkdir -p "$SCRIBE_HOME"
+  mkdir -p "$VELLUM_HOME"
   touch "$CONFIG"
   grep -v "^$key=" "$CONFIG" >"$CONFIG.tmp" || true
   echo "$key=$value" >>"$CONFIG.tmp"
@@ -154,12 +154,51 @@ cmd_config() {
 }
 
 # ---------------------------------------------------------------------------
+# Moving from Scribe
+# ---------------------------------------------------------------------------
+
+# Move Scribe's data from ~/.scribe to ~/.vellum, once. Anything already in
+# ~/.vellum wins. The old curl install's own files stay behind for
+# remove-old-install, and ~/.scribe goes once it is empty.
+migrate_home() {
+  local item to
+  [ -d "$OLD_HOME" ] && [ ! -e "$VELLUM_HOME/.moved-from-scribe" ] || return 0
+  mkdir -p "$VELLUM_HOME" 2>/dev/null || return 0
+  # Only one process moves things, even when several start at once.
+  mkdir "$VELLUM_HOME/.moving" 2>/dev/null || return 0
+  for item in library sessions notices recall retired .cache config declined projects.tsv scribe.log; do
+    [ -e "$OLD_HOME/$item" ] || continue
+    to="$VELLUM_HOME/$item"
+    [ "$item" = "scribe.log" ] && to="$GLOBAL_LOG"
+    [ -e "$to" ] || mv "$OLD_HOME/$item" "$to" 2>/dev/null || true
+  done
+  : >"$VELLUM_HOME/.moved-from-scribe"
+  rmdir "$VELLUM_HOME/.moving" "$OLD_HOME" 2>/dev/null || true
+}
+
+# Rename a project's Scribe journal, .scribe/, to .vellum/. Home is skipped,
+# because ~/.scribe there is the old data folder, not a journal.
+migrate_project_journal() {
+  local root="$1" exclude
+  [ "$root" != "$HOME" ] && [ "$root" != "$HOME_P" ] || return 0
+  [ -d "$root/.scribe" ] && [ ! -e "$root/.vellum" ] || return 0
+  [ -f "$root/.scribe/overview.md" ] || [ -d "$root/.scribe/logbook" ] || return 0
+  mv "$root/.scribe" "$root/.vellum" 2>/dev/null || return 0
+  [ -f "$root/.scribe-declined" ] && mv "$root/.scribe-declined" "$root/.vellum-declined"
+  exclude=$(git_exclude_file "$root") || return 0
+  if [ -f "$exclude" ] && grep -qxF "/.scribe/" "$exclude"; then
+    sed 's#^/\.scribe/$#/.vellum/#' "$exclude" >"$exclude.tmp" && mv "$exclude.tmp" "$exclude"
+  fi
+  log "moved $root/.scribe to .vellum"
+}
+
+# ---------------------------------------------------------------------------
 # Per-project state
 # ---------------------------------------------------------------------------
 
 is_declined() {
   local root="$1"
-  [ -f "$root/.scribe-declined" ] && return 0
+  [ -f "$root/.vellum-declined" ] || [ -f "$root/.scribe-declined" ] && return 0
   [ -f "$DECLINED" ] && grep -qxF "$root" "$DECLINED"
 }
 
@@ -168,10 +207,11 @@ is_declined() {
 # commit to git on purpose, and their training manual in place of lessons.md.
 set_project() {
   ROOT="$1"
-  if [ -d "$ROOT/design-journal" ] && [ ! -d "$ROOT/.scribe" ]; then
+  migrate_project_journal "$ROOT"
+  if [ -d "$ROOT/design-journal" ] && [ ! -d "$ROOT/.vellum" ]; then
     JOURNAL_NAME="design-journal"
   else
-    JOURNAL_NAME=".scribe"
+    JOURNAL_NAME=".vellum"
   fi
   JOURNAL="$ROOT/$JOURNAL_NAME"
   if [ -f "$JOURNAL/training-manual.md" ] && [ ! -f "$JOURNAL/lessons.md" ]; then
@@ -192,7 +232,7 @@ git_exclude_file() {
 
 add_git_exclude() {
   local exclude
-  [ "$JOURNAL_NAME" = ".scribe" ] || return 0
+  [ "$JOURNAL_NAME" = ".vellum" ] || return 0
   exclude=$(git_exclude_file "$1") || return 0
   mkdir -p "$(dirname "$exclude")"
   if [ ! -f "$exclude" ] || ! grep -qxF "/$JOURNAL_NAME/" "$exclude"; then
@@ -203,7 +243,7 @@ add_git_exclude() {
 
 remove_git_exclude() {
   local exclude
-  [ "$JOURNAL_NAME" = ".scribe" ] || return 0
+  [ "$JOURNAL_NAME" = ".vellum" ] || return 0
   exclude=$(git_exclude_file "$1") || return 0
   [ -f "$exclude" ] || return 0
   grep -vxF "/$JOURNAL_NAME/" "$exclude" >"$exclude.tmp" || true
@@ -225,9 +265,9 @@ require_journal() {
   set_project "$(project_root)"
   if [ ! -d "$JOURNAL" ]; then
     if has_legacy_journal "$ROOT"; then
-      die "this project uses the old journal/ folder. Run 'scribe migrate' first."
+      die "this project uses the old journal/ folder. Run 'vellum migrate' first."
     fi
-    die "journaling is not on for this project. Run 'scribe init' to turn it on."
+    die "journaling is not on for this project. Run 'vellum init' to turn it on."
   fi
 }
 

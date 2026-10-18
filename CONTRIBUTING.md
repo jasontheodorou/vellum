@@ -8,8 +8,8 @@ Thank you for helping. Bug reports, ideas and pull requests are all welcome.
 | --- | --- |
 | `.claude-plugin/plugin.json` | The plugin's name, version and description |
 | `.claude-plugin/marketplace.json` | Lets people install the plugin from this repository |
-| `hooks/hooks.json` | Runs `scribe hook session-start` and `scribe hook session-end` |
-| `bin/scribe` | The command Claude runs. It loads the files in `lib/` |
+| `hooks/hooks.json` | Runs `vellum hook session-start` and `vellum hook session-end` |
+| `bin/vellum` | The command Claude runs. It loads the files in `lib/` |
 | `lib/common.sh` | Shared helpers, settings and which folder holds a project's journal |
 | `lib/journal.sh` | The journal: starter files, the index, the curator and journal commands |
 | `lib/projects.sh` | The project list and the project commands |
@@ -20,7 +20,7 @@ Thank you for helping. Bug reports, ideas and pull requests are all welcome.
 | `templates/curator.md` | What the curator is told at the end of a session |
 | `templates/condense.jq` | Shrinks a session record for the curator (the script has a Python copy for computers without jq) |
 | `templates/journal-seed/` | The files a new journal starts with |
-| `skills/` | The `/scribe:` slash commands |
+| `skills/` | The `/vellum:` slash commands |
 | `test/` | Automated tests, and the manual test in `SMOKE-TEST.md` |
 
 The scripts must run on bash 3.2, which is the version macOS ships. That means no associative arrays, no `${var,,}` and no `mapfile`.
@@ -28,7 +28,7 @@ The scripts must run on bash 3.2, which is the version macOS ships. That means n
 ## Running the plugin from your copy
 
 ```
-claude --plugin-dir /path/to/terminal-scribe
+claude --plugin-dir /path/to/vellum
 ```
 
 Uninstall the released plugin first, or both copies will run.
@@ -39,11 +39,11 @@ Install [bats](https://github.com/bats-core/bats-core) and [ShellCheck](https://
 
 ```
 bats test/
-shellcheck -x -P SCRIPTDIR -S warning bin/scribe test/helpers.bash
+shellcheck -x -P SCRIPTDIR -S warning bin/vellum test/helpers.bash
 claude plugin validate . --strict
 ```
 
-Each test runs in a throwaway home folder, so your own `~/.scribe` and `~/.claude` are never touched. Tests use a fake `claude`, so they cost nothing.
+Each test runs in a throwaway home folder, so your own `~/.vellum` and `~/.claude` are never touched. Tests use a fake `claude`, so they cost nothing.
 
 In a bats test, write `refute grep ...` rather than `! grep ...`, and end every `[[ ... ]]` check with `|| false`. On the bash 3.2 that macOS ships, bats ignores a failed `!` or `[[ ]]` line unless it is the last line of the test.
 

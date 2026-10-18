@@ -1,5 +1,5 @@
 #!/bin/bash
-# Sourced by bin/scribe. Written for bash 3.2+.
+# Sourced by bin/vellum. Written for bash 3.2+.
 # shellcheck shell=bash
 
 # The journal: seeding, the index, the curator and the journal commands.
@@ -170,9 +170,9 @@ PY
 write_curator_prompt() {
   local note="$1" out="$2"
   # The note can span lines, which awk -v cannot take, so it goes in by environment.
-  SCRIBE_NOTE="$note" awk -v project="$(basename "$ROOT")" -v j="$JOURNAL_NAME" -v lessons="$LESSONS" -v today="$(date '+%Y-%m-%d')" '
+  VELLUM_NOTE="$note" awk -v project="$(basename "$ROOT")" -v j="$JOURNAL_NAME" -v lessons="$LESSONS" -v today="$(date '+%Y-%m-%d')" '
     { gsub(/\{\{PROJECT\}\}/, project); gsub(/\{\{J\}\}/, j); gsub(/\{\{LESSONS\}\}/, lessons); gsub(/\{\{TODAY\}\}/, today)
-      if ($0 == "{{SESSION_NOTE}}") { print ENVIRON["SCRIBE_NOTE"]; next }
+      if ($0 == "{{SESSION_NOTE}}") { print ENVIRON["VELLUM_NOTE"]; next }
       print }' "$TEMPLATES/curator.md" >"$out"
 }
 
@@ -184,7 +184,7 @@ run_curator() {
   allowed="Edit(./$JOURNAL_NAME/**)"
   [ -n "$extra_read" ] && allowed="$allowed,$extra_read"
   set_model_args
-  (cd "$ROOT" && SCRIBE_SUBAGENT=1 CLAUDE_JOURNAL_HOOK=1 claude -p \
+  (cd "$ROOT" && VELLUM_SUBAGENT=1 CLAUDE_JOURNAL_HOOK=1 claude -p \
     --tools "Read,Glob,Grep,Edit,Write" \
     --permission-mode dontAsk \
     --allowedTools "$allowed" \
@@ -200,10 +200,10 @@ cmd_init() {
   set_project "$(project_root)"
 
   if [ "${1:-}" = "--decline" ]; then
-    mkdir -p "$SCRIBE_HOME"
+    mkdir -p "$VELLUM_HOME"
     touch "$DECLINED"
     grep -qxF "$ROOT" "$DECLINED" || echo "$ROOT" >>"$DECLINED"
-    echo "Scribe will not ask about $ROOT again."
+    echo "Vellum will not ask about $ROOT again."
     return 0
   fi
 
@@ -211,7 +211,7 @@ cmd_init() {
     die "your home folder cannot have a journal. Open Claude in a project folder instead."
   fi
   if has_legacy_journal "$ROOT"; then
-    die "this project uses the old journal/ folder. Run 'scribe migrate' instead."
+    die "this project uses the old journal/ folder. Run 'vellum migrate' instead."
   fi
   [ -d "$TEMPLATES/journal-seed" ] || die "templates not found at $TEMPLATES"
 
@@ -224,17 +224,17 @@ cmd_init() {
     grep -vxF "$ROOT" "$DECLINED" >"$DECLINED.tmp" || true
     mv "$DECLINED.tmp" "$DECLINED"
   fi
-  rm -f "$ROOT/.scribe-declined"
+  rm -f "$ROOT/.vellum-declined"
 
   echo "Journaling is on for $ROOT."
-  if [ "$JOURNAL_NAME" = ".scribe" ]; then
+  if [ "$JOURNAL_NAME" = ".vellum" ]; then
     echo "The journal is in $JOURNAL_NAME/ and is kept out of git."
   else
     echo "The journal is in $JOURNAL_NAME/."
   fi
   if [ "$(config_get background on)" = "on" ]; then
     echo "After each session a background helper fills in anything missed."
-    echo "It runs Claude, so it uses some of your plan's allowance. 'scribe config background off' stops it."
+    echo "It runs Claude, so it uses some of your plan's allowance. 'vellum config background off' stops it."
   fi
 }
 
@@ -261,7 +261,7 @@ cmd_status() {
 
   if [ ! -d "$JOURNAL" ]; then
     if has_legacy_journal "$ROOT"; then
-      echo "This project has a journal from the old version. Run 'scribe migrate' to move it."
+      echo "This project has a journal from the old version. Run 'vellum migrate' to move it."
     elif is_declined "$ROOT"; then
       echo "Journaling is off for this project (you said no when asked)."
     else
@@ -324,7 +324,7 @@ cmd_archive() {
   summary=""
   set_model_args
   if command -v claude >/dev/null 2>&1; then
-    summary=$(cd "$ROOT" && SCRIBE_SUBAGENT=1 CLAUDE_JOURNAL_HOOK=1 claude -p \
+    summary=$(cd "$ROOT" && VELLUM_SUBAGENT=1 CLAUDE_JOURNAL_HOOK=1 claude -p \
       --tools "Read,Glob,Grep" \
       --permission-mode dontAsk \
       --no-session-persistence \
@@ -469,7 +469,7 @@ cmd_index() {
 # project on the list, or an archived one in the library.
 cmd_link() {
   local name="${1:-}" safe archive imports entry
-  [ -n "$name" ] || { echo "Usage: scribe link <project-name>" >&2; return 2; }
+  [ -n "$name" ] || { echo "Usage: vellum link <project-name>" >&2; return 2; }
   safe="$(__sanitize "$name")"
   archive="$LIBRARY/${safe}_archive.md"
   if [ -n "$(reg_line "$name")" ]; then
@@ -490,7 +490,7 @@ cmd_link() {
 
 cmd_unlink() {
   local name="${1:-}" safe imports
-  [ -n "$name" ] || { echo "Usage: scribe unlink <project-name>" >&2; return 2; }
+  [ -n "$name" ] || { echo "Usage: vellum unlink <project-name>" >&2; return 2; }
   safe="$(__sanitize "$name")"
   require_journal
   imports="$JOURNAL/.imports"
@@ -513,7 +513,7 @@ cmd_library() {
   [ $found -eq 1 ] || echo "There are no archived projects yet."
 }
 
-# Move a project from the old journal/ layout to .scribe/.
+# Move a project from the old journal/ layout to .vellum/.
 cmd_migrate() {
   set_project "$(project_root)"
   has_legacy_journal "$ROOT" || die "there is no old journal/ folder to move in $ROOT"
@@ -537,12 +537,12 @@ cmd_migrate() {
   fi
   add_git_exclude "$ROOT"
 
-  echo "Moved the journal from journal/ to $JOURNAL_NAME/ and removed the Scribe block from CLAUDE.md."
+  echo "Moved the journal from journal/ to $JOURNAL_NAME/ and removed the old Scribe block from CLAUDE.md."
   echo "Check 'git status': CLAUDE.md and .gitignore may now show as changed."
 }
 
 # Undo what the old curl installer did to Claude Code and the shell.
-# Archived projects in ~/.scribe/library are kept.
+# Archived projects in ~/.vellum/library are kept.
 cmd_remove_old_install() {
   local settings="$HOME/.claude/settings.json" f rc
   if [ -f "$settings" ] && grep -q '\.scribe/hooks/' "$settings"; then
@@ -578,9 +578,9 @@ PY
     if [ -z "$updated" ]; then
       die "could not edit $settings (needs jq or python3). Remove the two entries that mention .scribe/hooks/ by hand."
     fi
-    cp "$settings" "$settings.scribe-backup"
+    cp "$settings" "$settings.vellum-backup"
     printf '%s\n' "$updated" >"$settings"
-    echo "Removed the old hooks from $settings (backup saved as settings.json.scribe-backup)."
+    echo "Removed the old hooks from $settings (backup saved as settings.json.vellum-backup)."
   fi
 
   for f in journal-pause.md journal-resume.md journal-status.md; do
@@ -595,18 +595,19 @@ PY
     fi
   done
 
-  rm -rf "${SCRIBE_HOME:?}/bin" "${SCRIBE_HOME:?}/hooks" "${SCRIBE_HOME:?}/templates" \
-         "${SCRIBE_HOME:?}/uninstall.sh" "${SCRIBE_HOME:?}/VERSION"
+  rm -rf "${OLD_HOME:?}/bin" "${OLD_HOME:?}/hooks" "${OLD_HOME:?}/templates" \
+         "${OLD_HOME:?}/uninstall.sh" "${OLD_HOME:?}/VERSION"
+  rmdir "$OLD_HOME" 2>/dev/null || true
   echo "The old install is gone. Archived projects in $LIBRARY were kept."
 }
 
 cmd_doctor() {
   local issues=0
-  echo "Scribe $(plugin_version)"
+  echo "Vellum $(plugin_version)"
   if [ "$(uname -s)" = "Darwin" ]; then
     echo "  ok   running on macOS $(sw_vers -productVersion 2>/dev/null)"
   else
-    echo "  FAIL Scribe is for macOS only"
+    echo "  FAIL Vellum is for macOS only"
     issues=$((issues + 1))
   fi
   if command -v claude >/dev/null 2>&1; then
@@ -632,7 +633,7 @@ cmd_doctor() {
     issues=$((issues + 1))
   fi
   if has_legacy_install; then
-    echo "  FAIL the old curl install is still wired in. Run 'scribe remove-old-install'"
+    echo "  FAIL the old curl install is still wired in. Run 'vellum remove-old-install'"
     issues=$((issues + 1))
   else
     echo "  ok   no old install left over"

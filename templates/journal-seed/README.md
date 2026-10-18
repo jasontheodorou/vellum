@@ -1,6 +1,6 @@
-# .scribe/
+# .vellum/
 
-Scribe keeps this project's journal here. The folder is excluded from
+Vellum keeps this project's journal here. The folder is excluded from
 git on this computer only (in .git/info/exclude), so it is never committed or
 shared unless you choose to.
 

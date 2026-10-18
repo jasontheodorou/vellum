@@ -5,7 +5,7 @@ load helpers
 setup() { setup_isolated_env; }
 teardown() { teardown_isolated_env; }
 
-FIXTURE="$SCRIBE_REPO/test/fixtures/session.jsonl"
+FIXTURE="$VELLUM_REPO/test/fixtures/session.jsonl"
 
 check_condensed() {
   local out="$1"
@@ -23,26 +23,26 @@ check_condensed() {
 
 @test "condense with jq keeps the conversation and drops the rest" {
   command -v jq >/dev/null || skip "jq not installed"
-  jq -r -f "$SCRIBE_REPO/templates/condense.jq" "$FIXTURE" > "$TEST_HOME/out.txt"
+  jq -r -f "$VELLUM_REPO/templates/condense.jq" "$FIXTURE" > "$TEST_HOME/out.txt"
   check_condensed "$TEST_HOME/out.txt"
 }
 
 @test "condense with python3 gives the same result as jq" {
   command -v jq >/dev/null || skip "jq not installed"
   command -v python3 >/dev/null || skip "python3 not installed"
-  jq -r -f "$SCRIBE_REPO/templates/condense.jq" "$FIXTURE" > "$TEST_HOME/jq.txt"
+  jq -r -f "$VELLUM_REPO/templates/condense.jq" "$FIXTURE" > "$TEST_HOME/jq.txt"
   mkdir -p "$TEST_HOME/nojq"
   for t in bash sh sed awk grep cat rm mkdir dirname basename python3; do
     p=$(command -v $t) && ln -sf "$p" "$TEST_HOME/nojq/$t"
   done
   # Run the script's own function with jq hidden.
-  PATH="$TEST_HOME/nojq" bash -c "TEMPLATES='$SCRIBE_REPO/templates'; source '$SCRIBE_REPO/lib/common.sh'; source '$SCRIBE_REPO/lib/journal.sh'; condense_transcript '$FIXTURE' '$TEST_HOME/py.txt'"
+  PATH="$TEST_HOME/nojq" bash -c "TEMPLATES='$VELLUM_REPO/templates'; source '$VELLUM_REPO/lib/common.sh'; source '$VELLUM_REPO/lib/journal.sh'; condense_transcript '$FIXTURE' '$TEST_HOME/py.txt'"
   check_condensed "$TEST_HOME/py.txt"
   diff "$TEST_HOME/jq.txt" "$TEST_HOME/py.txt"
 }
 
 @test "condense shrinks a transcript" {
   command -v jq >/dev/null || skip "jq not installed"
-  jq -r -f "$SCRIBE_REPO/templates/condense.jq" "$FIXTURE" > "$TEST_HOME/out.txt"
+  jq -r -f "$VELLUM_REPO/templates/condense.jq" "$FIXTURE" > "$TEST_HOME/out.txt"
   [ "$(wc -c < "$TEST_HOME/out.txt")" -lt $(( $(wc -c < "$FIXTURE") / 4 )) ]
 }

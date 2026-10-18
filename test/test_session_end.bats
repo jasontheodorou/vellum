@@ -6,13 +6,13 @@ setup() {
   setup_isolated_env
   install_fake_claude
   make_git_repo
-  "$SCRIBE_BIN" init >/dev/null
-  TRANSCRIPT="$SCRIBE_REPO/test/fixtures/session.jsonl"
+  "$VELLUM_BIN" init >/dev/null
+  TRANSCRIPT="$VELLUM_REPO/test/fixtures/session.jsonl"
 }
 teardown() { teardown_isolated_env; }
 
 end_hook() {
-  hook_input SessionEnd "$1" "${2:-sess-1}" | "$SCRIBE_BIN" hook session-end
+  hook_input SessionEnd "$1" "${2:-sess-1}" | "$VELLUM_BIN" hook session-end
 }
 
 @test "session-end: starts a helper for a real session" {
@@ -23,50 +23,50 @@ end_hook() {
 
 @test "session-end: the helper cannot use the shell or bypass permissions" {
   end_hook "$TRANSCRIPT"
-  wait_for_file "$PROJECT_DIR/.scribe/.state/sess-1"
+  wait_for_file "$PROJECT_DIR/.vellum/.state/sess-1"
   grep -qx "Read,Glob,Grep,Edit,Write" "$TEST_HOME/claude.args"
   grep -qx "dontAsk" "$TEST_HOME/claude.args"
-  grep -qx "Edit(./.scribe/\*\*)" "$TEST_HOME/claude.args"
+  grep -qx "Edit(./.vellum/\*\*)" "$TEST_HOME/claude.args"
   refute grep -q "bypassPermissions" "$TEST_HOME/claude.args"
   refute grep -q "Bash" "$TEST_HOME/claude.args"
-  grep -qx "SCRIBE_SUBAGENT=1" "$TEST_HOME/claude.env"
+  grep -qx "VELLUM_SUBAGENT=1" "$TEST_HOME/claude.env"
 }
 
 @test "session-end: the curator reads a condensed copy of the session" {
   end_hook "$TRANSCRIPT"
-  wait_for_file "$PROJECT_DIR/.scribe/.state/sess-1"
-  grep -q "./.scribe/.state/session-sess-1.txt" "$TEST_HOME/claude.stdin"
+  wait_for_file "$PROJECT_DIR/.vellum/.state/sess-1"
+  grep -q "./.vellum/.state/session-sess-1.txt" "$TEST_HOME/claude.stdin"
   refute grep -q "$TRANSCRIPT" "$TEST_HOME/claude.stdin"
   grep -q "Never copy passwords" "$TEST_HOME/claude.stdin"
   refute grep -q "{{" "$TEST_HOME/claude.stdin"
 }
 
 @test "session-end: tidies up the condensed copy and rebuilds the index" {
-  rm -f "$PROJECT_DIR/.scribe/INDEX.md"
+  rm -f "$PROJECT_DIR/.vellum/INDEX.md"
   end_hook "$TRANSCRIPT"
-  wait_for_file "$PROJECT_DIR/.scribe/INDEX.md"
+  wait_for_file "$PROJECT_DIR/.vellum/INDEX.md"
   sleep 0.2
-  [ ! -f "$PROJECT_DIR/.scribe/.state/session-sess-1.txt" ]
-  [ ! -d "$PROJECT_DIR/.scribe/.state/lock" ]
+  [ ! -f "$PROJECT_DIR/.vellum/.state/session-sess-1.txt" ]
+  [ ! -d "$PROJECT_DIR/.vellum/.state/lock" ]
 }
 
 @test "session-end: falls back to the raw transcript when it cannot be condensed" {
-  old="$SCRIBE_REPO/test/fixtures/transcript.jsonl"
+  old="$VELLUM_REPO/test/fixtures/transcript.jsonl"
   end_hook "$old"
-  wait_for_file "$PROJECT_DIR/.scribe/.state/sess-1"
-  grep -qx "Edit(./.scribe/\*\*),Read(/$old)" "$TEST_HOME/claude.args"
+  wait_for_file "$PROJECT_DIR/.vellum/.state/sess-1"
+  grep -qx "Edit(./.vellum/\*\*),Read(/$old)" "$TEST_HOME/claude.args"
   grep -q "$old" "$TEST_HOME/claude.stdin"
 }
 
 @test "session-end: the helper does not show up in git status" {
   end_hook "$TRANSCRIPT"
-  wait_for_file "$PROJECT_DIR/.scribe/.state/sess-1"
+  wait_for_file "$PROJECT_DIR/.vellum/.state/sess-1"
   [ -z "$(git -C "$PROJECT_DIR" status --porcelain)" ]
 }
 
 @test "session-end: skips a transcript it has already read" {
   end_hook "$TRANSCRIPT"
-  wait_for_file "$PROJECT_DIR/.scribe/.state/sess-1"
+  wait_for_file "$PROJECT_DIR/.vellum/.state/sess-1"
   rm -f "$TEST_HOME/claude.args"
   end_hook "$TRANSCRIPT"
   sleep 0.5
@@ -74,21 +74,21 @@ end_hook() {
 }
 
 @test "session-end: skips when paused" {
-  "$SCRIBE_BIN" pause >/dev/null
+  "$VELLUM_BIN" pause >/dev/null
   end_hook "$TRANSCRIPT"
   sleep 0.5
   [ ! -f "$TEST_HOME/claude.args" ]
 }
 
 @test "session-end: skips when the background helper is off" {
-  "$SCRIBE_BIN" config background off >/dev/null
+  "$VELLUM_BIN" config background off >/dev/null
   end_hook "$TRANSCRIPT"
   sleep 0.5
   [ ! -f "$TEST_HOME/claude.args" ]
 }
 
 @test "session-end: skips without a journal" {
-  rm -rf "$PROJECT_DIR/.scribe"
+  rm -rf "$PROJECT_DIR/.vellum"
   end_hook "$TRANSCRIPT"
   sleep 0.5
   [ ! -f "$TEST_HOME/claude.args" ]
@@ -108,14 +108,14 @@ end_hook() {
 }
 
 @test "session-end: skips while another helper holds the lock" {
-  mkdir -p "$PROJECT_DIR/.scribe/.state/lock"
+  mkdir -p "$PROJECT_DIR/.vellum/.state/lock"
   end_hook "$TRANSCRIPT"
   sleep 0.5
   [ ! -f "$TEST_HOME/claude.args" ]
 }
 
 @test "session-end: silent inside a helper session" {
-  SCRIBE_SUBAGENT=1 end_hook "$TRANSCRIPT"
+  VELLUM_SUBAGENT=1 end_hook "$TRANSCRIPT"
   sleep 0.5
   [ ! -f "$TEST_HOME/claude.args" ]
 }

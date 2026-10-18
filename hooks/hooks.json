@@ -1,12 +1,12 @@
 {
-  "description": "Scribe: load the project journal when a session starts, and fill any gaps in it when a session ends.",
+  "description": "Vellum: load the project journal when a session starts, and fill any gaps in it when a session ends.",
   "hooks": {
     "SessionStart": [
       {
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/scribe\" hook session-start",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/vellum\" hook session-start",
             "timeout": 15
           }
         ]
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/scribe\" hook session-end",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/vellum\" hook session-end",
             "timeout": 15
           }
         ]

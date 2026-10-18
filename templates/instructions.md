@@ -9,4 +9,4 @@ If `{{J}}/.paused` exists, write nothing to it. Otherwise, as you work, note thi
 
 Start files with YAML frontmatter (`id`, `type`, `date`, `summary`, `tags`, `status`, `related`). Never record passwords, keys or personal data. Answer questions about the project from the overview and index below, opening entries as needed. Check `{{J}}/preferences.md` before proposing a design or approach.
 
-Journal commands: pause / resume journaling: `scribe pause` / `scribe resume`. tidy the journal: `scribe curate`. undo the journal update: `scribe undo`. archive / write it up: `scribe archive`. bring in project X's lessons: `scribe link X` (`unlink` to undo). turn off journaling here (confirm first, it deletes the journal): `scribe off --yes`.
+Journal commands: pause / resume journaling: `vellum pause` / `vellum resume`. tidy the journal: `vellum curate`. undo the journal update: `vellum undo`. archive / write it up: `vellum archive`. bring in project X's lessons: `vellum link X` (`unlink` to undo). turn off journaling here (confirm first, it deletes the journal): `vellum off --yes`.

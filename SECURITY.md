@@ -10,9 +10,9 @@ Use GitHub's private reporting instead: on this repository, open the **Security*
 
 These are especially important to us:
 
-- the background helper writing outside the project's `.scribe/` folder, running commands or reaching the network
+- the background helper writing outside the project's `.vellum/` folder, running commands or reaching the network
 - a journal ending up in git, or anywhere other than your own computer
-- `scribe remove-old-install` or `scribe migrate` changing files they should not touch
+- `vellum remove-old-install` or `vellum migrate` changing files they should not touch
 
 ## Supported versions
 

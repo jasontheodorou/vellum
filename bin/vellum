@@ -1,0 +1,143 @@
+#!/bin/bash
+# vellum: the Vellum helper for Claude Code.
+#
+# Claude runs these commands on the user's behalf, and the plugin's hooks call
+# `vellum hook ...`. The plugin puts this bin/ directory on the Bash tool's PATH.
+# Written for bash 3.2+ so it runs on a stock Mac.
+
+set -u
+
+# Where this script and the plugin live.
+VELLUM_BIN_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+PLUGIN_ROOT="$(cd "$(dirname "$VELLUM_BIN_PATH")/.." && pwd)"
+TEMPLATES="$PLUGIN_ROOT/templates"
+
+# Per-user data that must outlive plugin updates and uninstalls.
+VELLUM_HOME="${VELLUM_HOME:-$HOME/.vellum}"
+LIBRARY="$VELLUM_HOME/library"
+CONFIG="$VELLUM_HOME/config"
+DECLINED="$VELLUM_HOME/declined"
+GLOBAL_LOG="$VELLUM_HOME/vellum.log"
+REGISTRY="$VELLUM_HOME/projects.tsv"
+SESSIONS="$VELLUM_HOME/sessions"
+
+# Vellum was called Scribe, and kept its data in ~/.scribe. The old curl
+# install also lived there.
+OLD_HOME="${VELLUM_OLD_HOME:-$HOME/.scribe}"
+
+# The home folder with any symbolic links resolved. Folder paths are always
+# compared in this resolved form, because Claude Code reports them that way.
+HOME_P="$(cd "$HOME" 2>/dev/null && pwd -P || echo "$HOME")"
+
+# Set per project by set_project; these are the defaults.
+JOURNAL_NAME=".vellum"
+LESSONS="lessons.md"
+
+# shellcheck source=../lib/common.sh
+. "$PLUGIN_ROOT/lib/common.sh"
+# shellcheck source=../lib/journal.sh
+. "$PLUGIN_ROOT/lib/journal.sh"
+# shellcheck source=../lib/projects.sh
+. "$PLUGIN_ROOT/lib/projects.sh"
+# shellcheck source=../lib/recall.sh
+. "$PLUGIN_ROOT/lib/recall.sh"
+# shellcheck source=../lib/hooks.sh
+. "$PLUGIN_ROOT/lib/hooks.sh"
+# shellcheck source=../lib/theme.sh
+. "$PLUGIN_ROOT/lib/theme.sh"
+
+usage() {
+  cat <<EOF
+vellum $(plugin_version): the Vellum helper.
+
+Claude runs these for you when you ask in plain English.
+
+Projects
+  vellum new NAME [--about TEXT]   Start a project in your projects folder
+  vellum open NAME           Open a project and print its journal
+  vellum list [--all]        List projects, most recent first
+  vellum rename OLD NEW      Rename a project and its folder
+  vellum close | reopen NAME Close a project (with a final archive) or reopen it
+  vellum adopt [FOLDER]      Add an existing folder to the project list
+  vellum import-kit          Add every project from the earlier project kit
+  vellum running | stop NAME Which projects are running; stop one
+  vellum search WORDS        Search every project's journal
+  vellum recall WORDS        Search every past Claude Code conversation
+  vellum digest [DAYS]       What happened across projects lately
+  vellum preship             Checks before pushing code
+  vellum publish [--public]  Create a GitHub repository and push
+
+Journal
+  vellum init [--decline]    Turn journaling on here (or say no, once)
+  vellum status              Is journaling on, and what is in the journal
+  vellum pause | resume      Stop and restart journal writes
+  vellum curate              Tidy and reorganise the journal now
+  vellum undo                Undo the curator's last update to the journal
+  vellum archive             Save a summary of the project to your desktop
+  vellum library             List archived projects
+  vellum link | unlink NAME  Load (or stop loading) an archived project's lessons
+  vellum off [--yes]         Turn journaling off here and delete the journal
+  vellum config [KEY VALUE]  Settings: background on|off, model NAME|default
+  vellum migrate             Move a journal from the old journal/ folder
+  vellum remove-old-install  Remove the old curl-installed version of Scribe
+
+Terminal
+  vellum theme               Install Paper Mono and make Vellum Terminal's default
+  vellum theme undo          Go back to the previous default profile
+  vellum doctor              Check that everything is set up
+  vellum version             Print the version
+EOF
+}
+
+main() {
+  [ $# -gt 0 ] || { usage; exit 1; }
+  local cmd="$1"
+  shift
+  case "$cmd" in
+    new)                cmd_new "$@" ;;
+    open)               cmd_open "$@" ;;
+    list|projects)      cmd_list "$@" ;;
+    rename)             cmd_rename "$@" ;;
+    close)              cmd_close "$@" ;;
+    reopen)             cmd_reopen "$@" ;;
+    adopt)              cmd_adopt "$@" ;;
+    import-kit)         cmd_import_kit "$@" ;;
+    running)            cmd_running "$@" ;;
+    stop)               cmd_stop "$@" ;;
+    search)             cmd_search "$@" ;;
+    recall)             cmd_recall "$@" ;;
+    digest)             cmd_digest "$@" ;;
+    preship)            cmd_preship "$@" ;;
+    publish)            cmd_publish "$@" ;;
+    statusline)         cmd_statusline "$@" ;;
+    init)               cmd_init "$@" ;;
+    status)             cmd_status "$@" ;;
+    pause)              cmd_pause "$@" ;;
+    resume)             cmd_resume "$@" ;;
+    archive)            cmd_archive "$@" ;;
+    curate)             cmd_curate "$@" ;;
+    undo)               cmd_undo "$@" ;;
+    index)              cmd_index "$@" ;;
+    library)            cmd_library "$@" ;;
+    link)               cmd_link "$@" ;;
+    unlink)             cmd_unlink "$@" ;;
+    off)                cmd_off "$@" ;;
+    config)             cmd_config "$@" ;;
+    migrate)            cmd_migrate "$@" ;;
+    remove-old-install) cmd_remove_old_install "$@" ;;
+    doctor)             cmd_doctor "$@" ;;
+    theme)              cmd_theme "$@" ;;
+    hook)               cmd_hook "$@" ;;
+    version|-v|--version) plugin_version ;;
+    help|-h|--help)     usage ;;
+    __desktop_path)     __desktop_path "$@" ;;
+    __sanitize)         __sanitize "$@" ;;
+    *)
+      echo "vellum: unknown command '$cmd'. Run 'vellum help' to see the commands." >&2
+      exit 2
+      ;;
+  esac
+}
+
+migrate_home
+main "$@"

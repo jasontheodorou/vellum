@@ -26,14 +26,14 @@ JSON
 }
 teardown() { teardown_isolated_env; }
 
-@test "remove-old-install removes only the scribe hooks" {
-  run "$SCRIBE_BIN" remove-old-install
+@test "remove-old-install removes only the old Scribe hooks" {
+  run "$VELLUM_BIN" remove-old-install
   [ "$status" -eq 0 ]
   refute grep -q ".scribe/hooks" "$HOME/.claude/settings.json"
   grep -q "/other/hook.sh" "$HOME/.claude/settings.json"
   grep -q '"model": "opus"' "$HOME/.claude/settings.json"
   refute grep -q '"Stop"' "$HOME/.claude/settings.json"
-  [ -f "$HOME/.claude/settings.json.scribe-backup" ]
+  [ -f "$HOME/.claude/settings.json.vellum-backup" ]
 }
 
 @test "remove-old-install works with python3 when jq is missing" {
@@ -41,34 +41,35 @@ teardown() { teardown_isolated_env; }
   for t in bash sh grep sed awk cat cp mv rm mkdir head tail tr dirname basename python3; do
     p=$(command -v $t) && ln -sf "$p" "$TEST_HOME/nojq/$t"
   done
-  PATH="$TEST_HOME/nojq" run "$SCRIBE_BIN" remove-old-install
+  PATH="$TEST_HOME/nojq" run "$VELLUM_BIN" remove-old-install
   [ "$status" -eq 0 ]
   refute grep -q ".scribe/hooks" "$HOME/.claude/settings.json"
   grep -q "/other/hook.sh" "$HOME/.claude/settings.json"
 }
 
 @test "remove-old-install removes old commands but not the person's own" {
-  "$SCRIBE_BIN" remove-old-install
+  "$VELLUM_BIN" remove-old-install
   [ ! -f "$HOME/.claude/commands/journal-pause.md" ]
   [ -f "$HOME/.claude/commands/journal-status.md" ]
 }
 
 @test "remove-old-install removes the PATH line and keeps the rest" {
-  "$SCRIBE_BIN" remove-old-install
+  "$VELLUM_BIN" remove-old-install
   refute grep -q ".scribe/bin" "$HOME/.zshrc"
   refute grep -qx "# scribe" "$HOME/.zshrc"
   grep -q "export FOO=1" "$HOME/.zshrc"
 }
 
 @test "remove-old-install keeps the library" {
-  "$SCRIBE_BIN" remove-old-install
+  "$VELLUM_BIN" remove-old-install
   [ ! -d "$HOME/.scribe/bin" ]
   [ ! -d "$HOME/.scribe/hooks" ]
-  grep -q "keep me" "$HOME/.scribe/library/old_archive.md"
+  grep -q "keep me" "$HOME/.vellum/library/old_archive.md"
+  [ ! -d "$HOME/.scribe" ]
 }
 
 @test "remove-old-install is safe to run twice" {
-  "$SCRIBE_BIN" remove-old-install
-  run "$SCRIBE_BIN" remove-old-install
+  "$VELLUM_BIN" remove-old-install
+  run "$VELLUM_BIN" remove-old-install
   [ "$status" -eq 0 ]
 }

@@ -2,30 +2,30 @@
 
 load helpers
 
-setup() { setup_isolated_env; "$SCRIBE_BIN" init >/dev/null; }
+setup() { setup_isolated_env; "$VELLUM_BIN" init >/dev/null; }
 teardown() { teardown_isolated_env; }
 
 @test "pause creates the marker" {
-  run "$SCRIBE_BIN" pause
+  run "$VELLUM_BIN" pause
   [ "$status" -eq 0 ]
-  [ -f "$PROJECT_DIR/.scribe/.paused" ]
+  [ -f "$PROJECT_DIR/.vellum/.paused" ]
 }
 
 @test "resume removes the marker" {
-  "$SCRIBE_BIN" pause
-  run "$SCRIBE_BIN" resume
+  "$VELLUM_BIN" pause
+  run "$VELLUM_BIN" resume
   [ "$status" -eq 0 ]
-  [ ! -f "$PROJECT_DIR/.scribe/.paused" ]
+  [ ! -f "$PROJECT_DIR/.vellum/.paused" ]
 }
 
 @test "resume when not paused succeeds" {
-  run "$SCRIBE_BIN" resume
+  run "$VELLUM_BIN" resume
   [ "$status" -eq 0 ]
 }
 
 @test "pause without a journal explains how to turn it on" {
-  rm -rf "$PROJECT_DIR/.scribe"
-  run "$SCRIBE_BIN" pause
+  rm -rf "$PROJECT_DIR/.vellum"
+  run "$VELLUM_BIN" pause
   [ "$status" -ne 0 ]
-  [[ "$output" == *"scribe init"* ]] || false
+  [[ "$output" == *"vellum init"* ]] || false
 }

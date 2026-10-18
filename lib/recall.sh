@@ -1,20 +1,20 @@
 #!/bin/bash
-# Sourced by bin/scribe. Written for bash 3.2+.
+# Sourced by bin/vellum. Written for bash 3.2+.
 # shellcheck shell=bash
 
 # Recall: search every past Claude Code conversation on this computer.
 #
 # Claude Code saves each conversation as JSON lines under ~/.claude/projects/.
 # Each one is condensed once (about a hundredth of the size) into
-# ~/.scribe/recall/, with a short header, and refreshed only when it changes.
+# ~/.vellum/recall/, with a short header, and refreshed only when it changes.
 # Background helper runs (the curator and older journal helpers) are skipped.
 
 transcripts_root() {
-  echo "${SCRIBE_TRANSCRIPTS:-${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects}"
+  echo "${VELLUM_TRANSCRIPTS:-${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects}"
 }
 
 recall_dir() {
-  echo "$SCRIBE_HOME/recall"
+  echo "$VELLUM_HOME/recall"
 }
 
 # Print the header lines for a transcript: title, first and last date, and the
@@ -118,8 +118,8 @@ header_value() {
   sed -n "s/^# $2: //p" "$1" | head -1
 }
 
-# scribe recall WORDS [--project NAME] [--limit N] [--session ID]
-# scribe recall --show ID [WORDS]
+# vellum recall WORDS [--project NAME] [--limit N] [--session ID]
+# vellum recall --show ID [WORDS]
 cmd_recall() {
   local words=() project="" limit=5 exclude="" show="" f id score w ok scored="" title last projects
   local match=()
@@ -191,7 +191,7 @@ cmd_recall() {
       sort -t "$TAB" -k1,1nr -k2,2n | head -3 | cut -f3- | cut -c1-260 | sed 's/^/  /'
     echo
   done
-  echo "To read more of one: scribe recall --show <id> \"words\""
+  echo "To read more of one: vellum recall --show <id> \"words\""
 }
 
 # Print part of one past conversation: around the words if given, otherwise

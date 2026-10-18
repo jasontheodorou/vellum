@@ -1,20 +1,20 @@
 #!/bin/bash
-# Sourced by bin/scribe. Written for bash 3.2+.
+# Sourced by bin/vellum. Written for bash 3.2+.
 # shellcheck shell=bash
 
 # The SessionStart and SessionEnd hooks, and the project context they share
-# with `scribe open` and `scribe new`.
+# with `vellum open` and `vellum new`.
 
 # Print the journal instructions and the journal itself for the project that
 # set_project chose. Used at session start and when a project is opened.
 project_context() {
   if [ -f "$JOURNAL/.paused" ]; then
-    echo "Scribe is paused for this project ($ROOT). Do not write to the journal unless the person asks you to resume (\`\"$SCRIBE_BIN_PATH\" resume\`)."
+    echo "Vellum is paused for this project ($ROOT). Do not write to the journal unless the person asks you to resume (\`\"$VELLUM_BIN_PATH\" resume\`)."
     return 0
   fi
 
   port_guidance
-  sed -e "s|{{SCRIBE_BIN}}|$SCRIBE_BIN_PATH|g" -e "s|{{J}}|$JOURNAL_NAME|g" -e "s|{{LESSONS}}|$LESSONS|g" "$TEMPLATES/instructions.md"
+  sed -e "s|{{VELLUM_BIN}}|$VELLUM_BIN_PATH|g" -e "s|{{J}}|$JOURNAL_NAME|g" -e "s|{{LESSONS}}|$LESSONS|g" "$TEMPLATES/instructions.md"
   echo
   echo "# Journal for $(basename "$ROOT")"
 
@@ -210,16 +210,16 @@ save_notice() {
   else
     return 0
   fi
-  mkdir -p "$SCRIBE_HOME/notices"
-  printf '%s\n' "$text" >"$SCRIBE_HOME/notices/$(__sanitize "$root")"
+  mkdir -p "$VELLUM_HOME/notices"
+  printf '%s\n' "$text" >"$VELLUM_HOME/notices/$(__sanitize "$root")"
 }
 
 # The waiting messages for a project, or for every project from the home
 # folder, joined into one line. Shown once, then deleted.
 take_notices() {
   local root="$1" f out=""
-  [ -d "$SCRIBE_HOME/notices" ] || return 0
-  for f in "$SCRIBE_HOME"/notices/*; do
+  [ -d "$VELLUM_HOME/notices" ] || return 0
+  for f in "$VELLUM_HOME"/notices/*; do
     [ -f "$f" ] || continue
     if [ "$root" = "$HOME_P" ] || [ "$root" = "$(projects_dir)" ] || [ "$(basename "$f")" = "$(__sanitize "$root")" ]; then
       out="${out:+$out
@@ -285,18 +285,18 @@ session_start_context() {
 
   if has_legacy_install; then
     cat <<EOF
-Scribe note: the old curl version of Scribe is still installed alongside the plugin, so both may write journals. In your next reply, tell the person this once and offer to run \`"$SCRIBE_BIN_PATH" remove-old-install\`, which removes the old hooks, commands and PATH line and keeps their archived projects.
+Vellum note: the old curl version of Scribe (the earlier name of Vellum) is still installed alongside the plugin, so both may write journals. In your next reply, tell the person this once and offer to run \`"$VELLUM_BIN_PATH" remove-old-install\`, which removes the old hooks, commands and PATH line and keeps their archived projects.
 
 EOF
   fi
   if [ ! -s "$REGISTRY" ] && [ -n "$(kit_ports)" ]; then
     cat <<EOF
-Scribe note: the project list is empty, but the earlier project kit has $(kit_ports | grep -c .) projects in $(projects_dir). In your next reply, offer once to bring them in with \`"$SCRIBE_BIN_PATH" import-kit\`.
+Vellum note: the project list is empty, but the earlier project kit has $(kit_ports | grep -c .) projects in $(projects_dir). In your next reply, offer once to bring them in with \`"$VELLUM_BIN_PATH" import-kit\`.
 
 EOF
   fi
 
-  sed -e "s|{{SCRIBE_BIN}}|$SCRIBE_BIN_PATH|g" -e "s|{{SESSION}}|$session|g" "$TEMPLATES/projects.md"
+  sed -e "s|{{VELLUM_BIN}}|$VELLUM_BIN_PATH|g" -e "s|{{SESSION}}|$session|g" "$TEMPLATES/projects.md"
   echo
 
   set_project "$(project_root "$cwd")"
@@ -312,19 +312,19 @@ EOF
   if [ ! -d "$JOURNAL" ]; then
     if has_legacy_journal "$ROOT"; then
       cat <<EOF
-Scribe: this project ($ROOT) has a journal in journal/ from the old version of Scribe. In your next reply, offer once to move it with \`"$SCRIBE_BIN_PATH" migrate\`. That moves it to .scribe/, removes the Scribe block from CLAUDE.md and the journal/ line from .gitignore, and keeps it out of git another way. Until then, keep following the journal instructions in CLAUDE.md.
+Vellum: this project ($ROOT) has a journal in journal/ from the old curl version of Scribe. In your next reply, offer once to move it with \`"$VELLUM_BIN_PATH" migrate\`. That moves it to .vellum/, removes the Scribe block from CLAUDE.md and the journal/ line from .gitignore, and keeps it out of git another way. Until then, keep following the journal instructions in CLAUDE.md.
 EOF
       return 0
     fi
     is_declined "$ROOT" && return 0
     looks_like_project "$ROOT" || return 0
     cat <<EOF
-Scribe is installed but this folder ($ROOT) is not one of their projects yet.
+Vellum is installed but this folder ($ROOT) is not one of their projects yet.
 
-In your next reply, ask once whether to add it. Suggested wording: "Scribe can add this folder to your projects and keep a private journal of it, so I remember what we decided next time. Add it? (yes / no / not now)".
+In your next reply, ask once whether to add it. Suggested wording: "Vellum can add this folder to your projects and keep a private journal of it, so I remember what we decided next time. Add it? (yes / no / not now)".
 
-- Yes: run \`"$SCRIBE_BIN_PATH" adopt --session $session\` and tell them what it printed.
-- No: run \`"$SCRIBE_BIN_PATH" init --decline\`, so you do not ask again.
+- Yes: run \`"$VELLUM_BIN_PATH" adopt --session $session\` and tell them what it printed.
+- No: run \`"$VELLUM_BIN_PATH" init --decline\`, so you do not ask again.
 - Not now, or no clear answer: do nothing. You will ask again next session.
 
 Do not ask again this session once they have answered.
@@ -343,7 +343,7 @@ EOF
 
   if has_kit_hooks "$ROOT"; then
     cat <<EOF
-Scribe note: this project still has the earlier project kit's own hooks, so its journal is being written twice. In your next reply, offer once to switch it over fully with \`"$SCRIBE_BIN_PATH" adopt --session $session\`. That removes the kit's two hooks from .claude/settings.json (keeping a backup) and stops its weekly job. The journal stays where it is.
+Vellum note: this project still has the earlier project kit's own hooks, so its journal is being written twice. In your next reply, offer once to switch it over fully with \`"$VELLUM_BIN_PATH" adopt --session $session\`. That removes the kit's two hooks from .claude/settings.json (keeping a backup) and stops its weekly job. The journal stays where it is.
 
 EOF
   fi

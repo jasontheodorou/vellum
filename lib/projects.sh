@@ -1,11 +1,11 @@
 #!/bin/bash
-# Sourced by bin/scribe. Written for bash 3.2+.
+# Sourced by bin/vellum. Written for bash 3.2+.
 # shellcheck shell=bash
 
 # Projects: the list of projects, and starting, opening, renaming, closing,
 # searching and checking them.
 #
-# The list lives in ~/.scribe/projects.tsv, one project per line:
+# The list lives in ~/.vellum/projects.tsv, one project per line:
 #   name <TAB> folder <TAB> port <TAB> status <TAB> created <TAB> closed
 # status is "active" or "closed".
 
@@ -22,7 +22,7 @@ projects_dir() {
 }
 
 reg_ensure() {
-  mkdir -p "$SCRIBE_HOME"
+  mkdir -p "$VELLUM_HOME"
   [ -f "$REGISTRY" ] || : >"$REGISTRY"
 }
 
@@ -99,7 +99,7 @@ resolve_project() {
     return 0
   fi
   if [ "$count" -gt 1 ]; then
-    echo "scribe: '$query' matches more than one project:" >&2
+    echo "vellum: '$query' matches more than one project:" >&2
     printf '%s\n' "$matches" | sed 's/^/  /' >&2
     exit 1
   fi
@@ -181,7 +181,7 @@ kit_weekly_job() {
 }
 
 # Take the kit's hooks out of a project's .claude/settings.json and stop its
-# weekly job, because Scribe now does both. Keeps backups.
+# weekly job, because Vellum now does both. Keeps backups.
 retire_kit() {
   local root="$1" name="$2" settings updated plist
   settings="$root/.claude/settings.json"
@@ -226,9 +226,9 @@ PY
   plist="$(kit_weekly_job "$name")"
   if [ -f "$plist" ]; then
     launchctl unload "$plist" 2>/dev/null || true
-    mkdir -p "$SCRIBE_HOME/retired"
-    mv "$plist" "$SCRIBE_HOME/retired/"
-    echo "Stopped the project kit's weekly job (moved to ~/.scribe/retired/). The curator writes weekly round-ups now."
+    mkdir -p "$VELLUM_HOME/retired"
+    mv "$plist" "$VELLUM_HOME/retired/"
+    echo "Stopped the project kit's weekly job (moved to ~/.vellum/retired/). The curator writes weekly round-ups now."
   elif has_kit_hooks "$root" || [ -f "$settings.kit-backup" ]; then
     echo "There was no project kit weekly job for this project, so none was stopped."
   fi
@@ -300,7 +300,7 @@ cmd_open() {
   echo
   set_project "$dir"
   if [ ! -d "$JOURNAL" ]; then
-    echo "It has no journal yet. Ask the person whether to start one; if yes, run scribe init inside $dir."
+    echo "It has no journal yet. Ask the person whether to start one; if yes, run vellum init inside $dir."
     return 0
   fi
   project_context
@@ -574,8 +574,8 @@ cmd_preship() {
   hits="$(git ls-files | grep -E '^(client-data|private)/' | head -5 || true)"
   if [ -n "$hits" ]; then warn "files in client-data/ or private/ are tracked"; else ok "nothing in client-data/ or private/ is tracked"; fi
 
-  if [ "$JOURNAL_NAME" = ".scribe" ] && [ -n "$(git ls-files .scribe | head -1)" ]; then
-    warn "the private journal in .scribe/ is tracked by git"
+  if [ "$JOURNAL_NAME" = ".vellum" ] && [ -n "$(git ls-files .vellum | head -1)" ]; then
+    warn "the private journal in .vellum/ is tracked by git"
   else
     ok "the private journal is not tracked"
   fi
@@ -678,9 +678,9 @@ paint() {
 # Is something serving this port? Cached for 15 seconds, because the status
 # line redraws often and lsof is slow.
 port_running_cached() {
-  local port="$1" cache="$SCRIBE_HOME/.cache/port-$1" now
+  local port="$1" cache="$VELLUM_HOME/.cache/port-$1" now
   now=$(date +%s)
-  mkdir -p "$SCRIBE_HOME/.cache" 2>/dev/null || return 1
+  mkdir -p "$VELLUM_HOME/.cache" 2>/dev/null || return 1
   if [ -f "$cache" ] && [ $((now - $(stat -f %m "$cache" 2>/dev/null || echo 0))) -lt 15 ]; then
     [ "$(cat "$cache")" = "1" ]
     return

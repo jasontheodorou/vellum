@@ -1,22 +1,45 @@
-# Scribe
+# Vellum
 
-![Scribe](scribe_logo_001.png)
+Vellum sets up [Claude Code](https://claude.com/claude-code) on a Mac for running projects. It does three things:
 
-Scribe is a plugin for [Claude Code](https://claude.com/claude-code) on macOS. It runs your projects for you in plain English, and keeps a written history of each one, so every project can learn from the ones before it.
+- **A calmer Terminal.** Warm ivory paper, deep ink text and the Paper Mono font, made Terminal's default.
+- **A journal for every project.** Claude keeps a written history of each one, so every project can learn from the ones before it.
+- **A project list with shapes and ports.** Each project gets its own shape and colour in the status line, and its own localhost port, so windows and servers never get mixed up.
+
+Vellum was called Scribe until version 0.10.
 
 You never type a command. You just talk to Claude.
 
-Scribe is in beta (version 0.9). It works, but expect rough edges, and please [report anything odd](https://github.com/jasontheodorou/terminal-scribe/issues).
+Vellum is in beta (version 0.10). It works, but expect rough edges, and please [report anything odd](https://github.com/jasontheodorou/vellum/issues).
 
 ## Install
 
-Open Terminal, paste this line and press Enter:
+You need [Claude Code](https://claude.com/claude-code) first. Then open Terminal, paste this line and press Enter:
 
 ```
-claude plugin install scribe --marketplace jasontheodorou/terminal-scribe
+curl -fsSL https://raw.githubusercontent.com/jasontheodorou/vellum/main/install.sh | bash
 ```
 
-Then type `claude` to start, and say what you want.
+It installs the Claude Code plugin, puts Paper Mono in your fonts folder, adds the Vellum profile to Terminal and makes it the default, and turns on the status line. A new Terminal window opens in Vellum. Type `claude` in it and say what you want.
+
+To install only the journal and the project list, without changing Terminal, run this instead:
+
+```
+claude plugin install vellum --marketplace jasontheodorou/vellum
+```
+
+Nothing needs admin rights. To go back to your old Terminal look, say "go back to my old Terminal theme", or run `~/.vellum/bin/vellum theme undo`.
+
+## The Terminal look
+
+| Part | Colour |
+| --- | --- |
+| Background | `#F3EBD8` warm ivory |
+| Text | `#302B24` deep brown-black, and `#191611` for bold |
+| Selection | `#D8C7A5` muted sand |
+| Cursor | `#75583A` dark bronze |
+
+The font is [Paper Mono](https://github.com/paper-design/paper-mono) at 18 point. All the coloured text programs print, such as errors in red and success in green, uses deeper colours chosen to be readable on ivory. The profile is for Apple's own Terminal app.
 
 ## What you can say
 
@@ -74,11 +97,11 @@ Claude reads the overview, your preferences and the index whenever you open a pr
 - **Last time.** When you start Claude in a project, one line reminds you where you were, such as "Last time, 16 Oct: chose raised beds. Next: confirm bed sizes."
 - **Journal updates.** If the curator changed a journal after your last session, one line says what, such as "sanctum: 1 decision, lessons and the overview."
 - **The right port.** Every project has its own port, and Claude uses it when it starts the project's server, so two projects never clash.
-- **The status line.** The bottom line shows the project's name in its own colour, next to its own shape (● ◆ ▲ ■ and so on), so several open windows are easy to tell apart. The colours come from your terminal's theme, so they suit your background, and the name is always in your normal text colour. Set `NO_COLOR` to turn colour off. It adds more only when something needs your attention: the server is live, you are on a side branch, commits are waiting to be pushed, or the journal is paused. To turn it on, add `"statusLine": {"type": "command", "command": "scribe statusline"}` to `~/.claude/settings.json`, or ask Claude to do it.
+- **The status line.** The bottom line shows the project's name in its own colour, next to its own shape (● ◆ ▲ ■ and so on), so several open windows are easy to tell apart. The colours come from your terminal's theme, so they suit your background, and the name is always in your normal text colour. Set `NO_COLOR` to turn colour off. It adds more only when something needs your attention: the server is live, you are on a side branch, commits are waiting to be pushed, or the journal is paused. The installer turns it on, unless you already have a status line of your own.
 
 ## Recall: every past conversation
 
-Claude Code saves every conversation on your Mac, but nothing searches them. Scribe does. Ask about anything you discussed, in any project, and Claude finds the conversation, the date and your exact words, then reads more if it needs to.
+Claude Code saves every conversation on your Mac, but nothing searches them. Vellum does. Ask about anything you discussed, in any project, and Claude finds the conversation, the date and your exact words, then reads more if it needs to.
 
 The first search reads your history once, which takes a minute or two. After that each conversation is added as it ends. Background helper runs are left out.
 
@@ -89,10 +112,10 @@ Claude Code remembers some facts about you, and git remembers what changed. Neit
 | What | Where |
 | --- | --- |
 | Your projects | `~/projects`, unless you say "change where projects go" |
-| A project's journal | `.scribe/` inside the project, kept out of git |
-| The list of projects | `~/.scribe/projects.tsv` |
-| Archived projects | `~/.scribe/library/` |
-| Settings | `~/.scribe/config` |
+| A project's journal | `.vellum/` inside the project, kept out of git |
+| The list of projects | `~/.vellum/projects.tsv` |
+| Archived projects | `~/.vellum/library/` |
+| Settings | `~/.vellum/config` |
 | Write-ups you ask for | Your desktop |
 
 [PRIVACY.md](PRIVACY.md) explains what is recorded, what the curator can and cannot do, and how to delete everything.
@@ -101,7 +124,7 @@ Claude Code remembers some facts about you, and git remembers what changed. Neit
 
 Claude's notes during a session cost very little. The curator runs Claude once more when each session ends, in the background, usually for under a minute to a few minutes. It reads a condensed copy of the session, about a hundredth of the full record. It still uses some of your plan's allowance or your API credit.
 
-To save money, say "use Haiku for Scribe". To turn the curator off, say "stop the background curator".
+To save money, say "use Haiku for Vellum". To turn the curator off, say "stop the background curator".
 
 ## Start Claude in your home folder
 
@@ -109,15 +132,19 @@ Start Claude in your home folder (just open Terminal and type `claude`). Claude 
 
 ## Coming from the project kit
 
-If you used the earlier project kit, say "import my projects". Every project keeps its `design-journal/` folder, its training manual and its port. When you open a kit project, Claude offers to switch it over fully. That removes the kit's own hooks from the project, keeping a backup, and stops its weekly job, because Scribe now does both.
+If you used the earlier project kit, say "import my projects". Every project keeps its `design-journal/` folder, its training manual and its port. When you open a kit project, Claude offers to switch it over fully. That removes the kit's own hooks from the project, keeping a backup, and stops its weekly job, because Vellum now does both.
 
-## Coming from the curl installer
+## Coming from the old Scribe curl installer
 
-Versions before 1.0 were installed with a `curl` command. After you install the plugin, Claude notices the old version and offers to remove it. Your archived projects are kept. Projects with an old `journal/` folder can be moved to `.scribe/` when you open them.
+The first versions of Scribe were installed with a different `curl` command into `~/.scribe`. After you install the plugin, Claude notices the old version and offers to remove it. Your archived projects are kept. Projects with an old `journal/` folder can be moved to `.vellum/` when you open them.
+
+## Coming from Scribe
+
+Vellum moves Scribe's data from `~/.scribe` to `~/.vellum` the first time it runs, and moves each project's `.scribe/` journal to `.vellum/` the next time you open it. Nothing is lost. Uninstall the Scribe plugin with `/plugin uninstall scribe`.
 
 ## Uninstall
 
-In Claude Code, type `/plugin uninstall scribe`.
+In Claude Code, type `/plugin uninstall vellum`. To put back your old Terminal profile first, run `~/.vellum/bin/vellum theme undo`.
 
 That stops everything. It does not delete your projects, journals or library, because they are your work.
 

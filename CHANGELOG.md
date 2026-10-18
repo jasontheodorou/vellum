@@ -2,6 +2,20 @@
 
 This project uses [semantic versioning](https://semver.org). The version lives in `.claude-plugin/plugin.json`.
 
+## 0.10.0 beta (unreleased)
+
+Scribe is now called Vellum, and sets up Apple's Terminal as well as Claude Code.
+
+### Added
+
+- `install.sh`: one Terminal command installs the plugin, the Terminal theme and the status line.
+- `vellum theme`: installs the Paper Mono font and the Vellum Terminal profile (warm ivory, deep ink, 18 point), and makes it the default for new and startup windows. `vellum theme undo` goes back to the previous profile.
+
+### Changed
+
+- Renamed from Scribe to Vellum: the plugin, the `vellum` command and the `/vellum:` slash commands.
+- Data moves from `~/.scribe` to `~/.vellum` the first time Vellum runs, and each project's `.scribe/` journal moves to `.vellum/` when the project is next used. A "no" given to Scribe is still respected.
+
 ## 0.9.0 beta (unreleased)
 
 Scribe (formerly Terminal Scribe) is now a Claude Code plugin.

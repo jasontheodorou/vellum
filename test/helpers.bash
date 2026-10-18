@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
 # Shared test helpers. Each test runs in a throwaway $HOME, so the real
-# ~/.scribe and ~/.claude are never touched.
+# ~/.vellum and ~/.claude are never touched.
 
-SCRIBE_REPO="${SCRIBE_REPO:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
-SCRIBE_BIN="$SCRIBE_REPO/bin/scribe"
+VELLUM_REPO="${VELLUM_REPO:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+VELLUM_BIN="$VELLUM_REPO/bin/vellum"
 
 setup_isolated_env() {
-  TEST_HOME="$(cd "$(mktemp -d "${TMPDIR:-/tmp}/scribe-test.XXXXXX")" && pwd -P)"
+  TEST_HOME="$(cd "$(mktemp -d "${TMPDIR:-/tmp}/vellum-test.XXXXXX")" && pwd -P)"
   export HOME="$TEST_HOME" TEST_HOME
-  unset SCRIBE_HOME SCRIBE_SUBAGENT CLAUDE_JOURNAL_HOOK CLAUDE_PROJECT_DIR
+  unset VELLUM_HOME VELLUM_SUBAGENT CLAUDE_JOURNAL_HOOK CLAUDE_PROJECT_DIR
   export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
 
   PROJECT_DIR="$TEST_HOME/test-project"
   mkdir -p "$PROJECT_DIR"
-  export PROJECT_DIR SCRIBE_BIN
+  export PROJECT_DIR VELLUM_BIN
 
   # Keep the real claude off PATH unless a test installs the fake one.
   FAKEBIN="$TEST_HOME/fakebin"
@@ -44,7 +44,7 @@ install_fake_claude() {
 #!/bin/bash
 printf '%s\n' "$@" >> "$TEST_HOME/claude.args"
 cat >> "$TEST_HOME/claude.stdin"
-echo "SCRIBE_SUBAGENT=${SCRIBE_SUBAGENT:-}" >> "$TEST_HOME/claude.env"
+echo "VELLUM_SUBAGENT=${VELLUM_SUBAGENT:-}" >> "$TEST_HOME/claude.env"
 echo "Fake summary of the project."
 FAKE
   chmod +x "$FAKEBIN/claude"

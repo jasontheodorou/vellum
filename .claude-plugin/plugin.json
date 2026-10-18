@@ -1,14 +1,14 @@
 {
-  "name": "scribe",
-  "displayName": "Scribe",
-  "version": "0.9.0",
+  "name": "vellum",
+  "displayName": "Vellum",
+  "version": "0.10.0",
   "description": "Run your projects in plain English: start, open, search, archive and close them, with a curated journal of every decision, experiment, lesson and preference.",
   "author": {
     "name": "Jason Theodorou",
     "url": "https://github.com/jasontheodorou"
   },
-  "homepage": "https://github.com/jasontheodorou/terminal-scribe",
-  "repository": "https://github.com/jasontheodorou/terminal-scribe",
+  "homepage": "https://github.com/jasontheodorou/vellum",
+  "repository": "https://github.com/jasontheodorou/vellum",
   "license": "MIT",
   "keywords": ["projects", "journal", "memory", "decisions", "history", "handoff", "plain-english"]
 }
