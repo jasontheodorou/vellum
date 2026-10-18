@@ -6,20 +6,33 @@
 
 ObjC.import('AppKit');
 
-// Man Page brightened: soft yellow paper, charcoal ink and crisp accents. Only
-// these colours are set; the other ANSI colours keep Terminal's defaults, as
-// Man Page does.
+// Man Page brightened: sunny yellow paper, charcoal ink and crisp accents.
+// All 16 ANSI colours are set, because Claude Code's "Light mode (ANSI colours
+// only)" theme uses every one of them. White and bright white are backgrounds
+// (Claude's message boxes) and light text on coloured badges, so they stay
+// light; every other colour is at least 4.5 to 1 against the background.
 var COLOURS = {
   BackgroundColor: '#FFF095',
   TextColor: '#282923',
   TextBoldColor: '#171813',
   CursorColor: '#B53668',
   SelectionColor: '#D5E5F5',
+  ANSIBlackColor: '#282923',
   ANSIRedColor: '#B63E32',
   ANSIGreenColor: '#347348',
   ANSIYellowColor: '#876000',
   ANSIBlueColor: '#3455C5',
-  ANSIMagentaColor: '#B53668'
+  ANSIMagentaColor: '#B53668',
+  ANSICyanColor: '#21717A',
+  ANSIWhiteColor: '#FFFADB',
+  ANSIBrightBlackColor: '#66655A',
+  ANSIBrightRedColor: '#B04A1E',
+  ANSIBrightGreenColor: '#2B6A3D',
+  ANSIBrightYellowColor: '#7A5600',
+  ANSIBrightBlueColor: '#2C47AE',
+  ANSIBrightMagentaColor: '#9E2D5B',
+  ANSIBrightCyanColor: '#1B6670',
+  ANSIBrightWhiteColor: '#FFFFFF'
 };
 
 var FONT = 'PaperMono-Regular';

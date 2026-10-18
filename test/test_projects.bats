@@ -32,9 +32,9 @@ reg() { cat "$HOME/.vellum/projects.tsv"; }
 
 @test "new: continues after the project kit's ports" {
   mkdir -p "$P"
-  echo '{"next": 3025, "projects": {"katsura": 3019, "portfolio": 3024}}' > "$P/.ports.json"
+  echo '{"next": 47025, "projects": {"katsura": 47019, "portfolio": 47024}}' > "$P/.ports.json"
   "$VELLUM_BIN" new fresh >/dev/null
-  reg | grep -q "^fresh	.*	3025	"
+  reg | grep -q "^fresh	.*	47025	"
 }
 
 @test "new: refuses a name that is taken" {

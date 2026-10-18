@@ -20,7 +20,14 @@ You need [Claude Code](https://claude.com/claude-code) first. Then open Terminal
 curl -fsSL https://raw.githubusercontent.com/jasontheodorou/vellum/main/install.sh | bash
 ```
 
-It installs the Claude Code plugin, puts Paper Mono in your fonts folder, adds the Vellum profile to Terminal and makes it the default, and turns on the status line. A new Terminal window opens in Vellum. Type `claude` in it and say what you want.
+It does four things, then shows a welcome screen:
+
+1. Adds the Vellum profile to Terminal, with the Paper Mono font, and makes it the default.
+2. Installs the Claude Code plugin: the journal, the project list, shapes and ports.
+3. Sets Claude Code to "Light mode (ANSI colours only)", so Claude draws with Vellum's colours and its text is always readable on the yellow paper.
+4. Turns on the status line, and removes Scribe, Vellum's earlier name, if you had it. Your projects, journals and archives are kept.
+
+Your Claude Code settings are backed up first, and running it again is safe. A new Terminal window opens in Vellum. Type `claude` in it and say what you want.
 
 To install only the journal and the project list, without changing Terminal, run this instead:
 
@@ -40,9 +47,11 @@ Vellum is a brighter take on Terminal's Man Page profile: sunny yellow paper, ch
 | Text | `#282923` charcoal, and `#171813` for bold |
 | Selection | `#D5E5F5` pale sky blue |
 | Cursor | `#B53668` raspberry |
-| Accents | `#B63E32` red, `#347348` green, `#876000` amber, `#3455C5` cobalt blue, `#B53668` raspberry |
+| Accents | `#B63E32` red, `#347348` green, `#876000` amber, `#3455C5` cobalt blue, `#B53668` raspberry, `#21717A` teal |
+| Bright accents | `#B04A1E` Claude orange, `#2B6A3D` green, `#7A5600` amber, `#2C47AE` blue, `#9E2D5B` berry, `#1B6670` teal, `#66655A` grey |
+| Light colours | `#FFFADB` cream and `#FFFFFF` white, for Claude's message backgrounds |
 
-The font is [Paper Mono](https://github.com/paper-design/paper-mono) at 18 point. Every Vellum colour has at least 4.5 to 1 contrast against the background. Cyan, white and the bright colours keep Terminal's own defaults, as in Man Page, and some of those are faint on yellow. The profile is for Apple's own Terminal app.
+The font is [Paper Mono](https://github.com/paper-design/paper-mono) at 18 point. Vellum sets all 16 terminal colours, because Claude Code's ANSI-only theme uses every one of them. Every colour used for text has at least 4.5 to 1 contrast against the background; white and bright white stay light, because Claude uses them for message backgrounds. The profile is for Apple's own Terminal app.
 
 ## What you can say
 
