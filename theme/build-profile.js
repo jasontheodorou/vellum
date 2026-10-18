@@ -12,7 +12,7 @@ ObjC.import('AppKit');
 // (Claude's message boxes) and light text on coloured badges, so they stay
 // light; every other colour is at least 4.5 to 1 against the background.
 var COLOURS = {
-  BackgroundColor: '#FFF095',
+  BackgroundColor: '#FCFCC7',
   TextColor: '#282923',
   TextBoldColor: '#171813',
   CursorColor: '#B53668',

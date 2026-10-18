@@ -43,7 +43,7 @@ Vellum is a brighter take on Terminal's Man Page profile: sunny yellow paper, ch
 
 | Part | Colour |
 | --- | --- |
-| Background | `#FFF095` sunlight yellow |
+| Background | `#FCFCC7` pale lemon |
 | Text | `#282923` charcoal, and `#171813` for bold |
 | Selection | `#D5E5F5` pale sky blue |
 | Cursor | `#B53668` raspberry |
