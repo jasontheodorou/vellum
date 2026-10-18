@@ -12,8 +12,14 @@ setup() {
   export TERMINAL
   cat > "$FAKEBIN/osascript" <<'FAKE'
 #!/bin/bash
+[ "${1:-}" = "-e" ] || { cat >/dev/null; exit 0; }
 script="$2"
+echo "$script" >> "$TERMINAL/log"
 case "$script" in
+  *"delete settings set"*)
+    name="${script#*settings set \"}"; name="${name%\"}"
+    grep -vxF "$name" "$TERMINAL/profiles" > "$TERMINAL/p.tmp"; mv "$TERMINAL/p.tmp" "$TERMINAL/profiles" ;;
+  *"name of startup settings"*) cat "$TERMINAL/startup" 2>/dev/null ;;
   *"name of default settings"*) cat "$TERMINAL/default" ;;
   *"exists settings set"*)
     name="${script#*settings set \"}"; name="${name%\"}"
@@ -74,4 +80,37 @@ teardown() { teardown_isolated_env; }
 @test "the profile file is valid and uses Paper Mono" {
   plutil -lint "$VELLUM_REPO/theme/Vellum.terminal"
   plutil -extract Font raw -o - "$VELLUM_REPO/theme/Vellum.terminal" | base64 -D | grep -aq PaperMono-Regular
+}
+
+@test "theme replaces an older Vellum profile instead of adding a second one" {
+  "$VELLUM_BIN" theme
+  echo "an older version" > "$HOME/.vellum/theme-installed"
+  run "$VELLUM_BIN" theme
+  [ "$status" -eq 0 ]
+  grep -q "Updated the Vellum profile" <<<"$output"
+  grep -q 'delete settings set "Vellum"' "$TERMINAL/log"
+  [ "$(grep -cx Vellum "$TERMINAL/profiles")" -eq 1 ]
+  grep -qx Vellum "$TERMINAL/default"
+  grep -qx Vellum "$TERMINAL/startup"
+}
+
+@test "theme leaves an up-to-date profile alone" {
+  "$VELLUM_BIN" theme
+  "$VELLUM_BIN" theme
+  refute grep -q "delete settings set" "$TERMINAL/log"
+}
+
+@test "session start offers a theme update once, until skipped" {
+  "$VELLUM_BIN" theme
+  echo "an older version" > "$HOME/.vellum/theme-installed"
+  run "$VELLUM_BIN" hook session-start < <(hook_input SessionStart /dev/null)
+  grep -q "new version of the Vellum Terminal theme" <<<"$output"
+  "$VELLUM_BIN" theme skip
+  run "$VELLUM_BIN" hook session-start < <(hook_input SessionStart /dev/null)
+  refute grep -q "Vellum Terminal theme" <<<"$output"
+}
+
+@test "session start says nothing about the theme if it was never installed" {
+  run "$VELLUM_BIN" hook session-start < <(hook_input SessionStart /dev/null)
+  refute grep -q "Vellum Terminal theme" <<<"$output"
 }

@@ -289,6 +289,12 @@ Vellum note: the old curl version of Scribe (the earlier name of Vellum) is stil
 
 EOF
   fi
+  if theme_update_waiting; then
+    cat <<EOF
+Vellum note: a new version of the Vellum Terminal theme has arrived. In your next reply, offer once to apply it with \`"$VELLUM_BIN_PATH" theme\`. Say that it replaces the Vellum profile in Terminal, so any colours they changed in Terminal's own settings are lost. If they say no, run \`"$VELLUM_BIN_PATH" theme skip\`.
+
+EOF
+  fi
   if [ ! -s "$REGISTRY" ] && [ -n "$(kit_ports)" ]; then
     cat <<EOF
 Vellum note: the project list is empty, but the earlier project kit has $(kit_ports | grep -c .) projects in $(projects_dir). In your next reply, offer once to bring them in with \`"$VELLUM_BIN_PATH" import-kit\`.
