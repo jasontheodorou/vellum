@@ -112,7 +112,13 @@
   border: 1px solid var(--v-edge);
   border-radius: 10px;
   overflow: hidden;
-  box-shadow: 0 1px 2px rgb(40 41 35 / 0.06), 0 16px 40px rgb(40 41 35 / 0.08);
+  /* A soft shadow above each window falls on the bar of the one behind, so the stacked bars
+     stay apart; the larger one below lifts the stack off the page */
+  box-shadow:
+    0 -1px 0 rgb(40 41 35 / 0.05),
+    0 -6px 14px rgb(40 41 35 / 0.09),
+    0 1px 2px rgb(40 41 35 / 0.06),
+    0 16px 40px rgb(40 41 35 / 0.08);
   /* Slot 0 is the front window; each slot behind it sits up and to the right */
   transform: translate(calc(var(--slot) * var(--peek) * var(--dx, 1.6)), calc((2 - var(--slot)) * var(--peek)));
   z-index: calc(3 - var(--slot));
