@@ -50,10 +50,13 @@ const PAUSES = [350, 900, 450, 0]
 function Win({ project, slot, typing, run }: { project: Project; slot: number; typing: boolean; run: number }) {
   const reduce = useReducedMotion()
   const all = lines(project)
-  const [shown, setShown] = useState(typing ? 0 : all.length)
+  // The first front window starts empty and waits for its turn to type
+  const waiting = !typing && slot === 0 && run === 0 && !reduce
+  const [shown, setShown] = useState(typing || waiting ? 0 : all.length)
 
   // Uncover the lines one after another each time this window starts typing
   useEffect(() => {
+    if (waiting) return
     if (!typing || reduce) { setShown(all.length); return }
     setShown(0)
     const timers: number[] = []
@@ -63,7 +66,7 @@ function Win({ project, slot, typing, run }: { project: Project; slot: number; t
       at += Math.min(l.text.length * 16, 1300) + PAUSES[i]
     })
     return () => timers.forEach(clearTimeout)
-  }, [typing, run, reduce])
+  }, [typing, run, reduce, waiting])
 
   return (
     <article className="win" style={{ '--slot': slot, '--accent': project.colour } as React.CSSProperties} aria-hidden={slot !== 0}>
@@ -91,7 +94,7 @@ function Win({ project, slot, typing, run }: { project: Project; slot: number; t
   )
 }
 
-export function Windows() {
+export function Windows({ ready }: { ready: boolean }) {
   const [active, setActive] = useState(0)
   // Count each time a project is reopened, so its window types again
   const [opened, setOpened] = useState(0)
@@ -117,7 +120,7 @@ export function Windows() {
       />
       <div className="stage" ref={ref}>
         {PROJECTS.map((p, i) => (
-          <Win key={p.name} project={p} slot={order.indexOf(i)} typing={i === active && seen.current} run={i === active ? opened : -1} />
+          <Win key={p.name} project={p} slot={order.indexOf(i)} typing={i === active && seen.current && ready} run={i === active ? opened : -1} />
         ))}
       </div>
     </section>

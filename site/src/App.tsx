@@ -1,9 +1,10 @@
 import {
-  ActionIcon, Anchor, Badge, Code, Container, CopyButton, Group, SimpleGrid,
-  Stack, Text, ThemeIcon, Title, Tooltip,
+  ActionIcon, Anchor, Code, Container, CopyButton, Group, SimpleGrid, ThemeIcon, Tooltip,
 } from '@mantine/core'
 import { IconBrandGithub, IconCheck, IconCopy, IconEye, IconNotebook, IconSquares } from '@tabler/icons-react'
+import { useState } from 'react'
 import { Windows } from './Windows'
+import { BrandPromise } from './BrandPromise'
 
 const INSTALL = 'curl -fsSL https://raw.githubusercontent.com/jasontheodorou/vellum/main/install.sh | bash'
 
@@ -18,54 +19,50 @@ const FEATURES = [
   {
     icon: IconEye,
     title: 'Easy on the eyes',
-    text: 'Soft lemon paper, dark ink and Paper Mono. Every colour Claude uses is readable on the page.',
+    text: 'Soft paper, dark ink, and colours you can always read.',
   },
   {
     icon: IconNotebook,
     title: 'Remembers for you',
-    text: 'An always-on journal of what you decided and why, with a short recap each time you come back.',
+    text: 'A journal of every decision, and a recap when you return.',
   },
   {
     icon: IconSquares,
     title: 'Keeps projects apart',
-    text: 'Each window gets its own shape, and each project its own localhost port.',
+    text: 'Every project gets its own shape and its own port.',
   },
 ]
 
 export function App() {
+  // The windows start typing once the brand promise is written
+  const [ready, setReady] = useState(false)
   return (
     <Container size="lg" className="page">
-      <h1 className="logo">
-        <span className="visually-hidden">Vellum</span>
-        <pre aria-hidden="true">{LOGO}</pre>
-      </h1>
+      <header>
+        <h1 className="logo">
+          <span className="visually-hidden">Vellum</span>
+          <pre aria-hidden="true">{LOGO}</pre>
+        </h1>
+        <BrandPromise onDone={() => setReady(true)} />
+      </header>
 
-      <Windows />
+      <Windows ready={ready} />
 
-      <Stack gap="md" mt={88} maw={720}>
-        <Badge variant="light" color="cobalt" radius="sm" size="lg" tt="none" fw={500} w="fit-content">
-          For the macOS Terminal and Claude Code
-        </Badge>
-        <Title order={2} className="tagline">
-          A terminal window that works with you, not against&nbsp;you.<span className="cursor" aria-hidden="true" />
-        </Title>
-      </Stack>
-
-      <SimpleGrid cols={{ base: 1, sm: 3 }} spacing={40} verticalSpacing={32} mt={56}>
+      <SimpleGrid cols={{ base: 1, sm: 3 }} spacing={48} verticalSpacing={48}>
         {FEATURES.map((f) => (
-          <Stack key={f.title} gap={12}>
-            <ThemeIcon variant="light" color="cobalt" size={40} radius="md">
-              <f.icon size={22} stroke={1.6} />
+          <div key={f.title} className="feature">
+            <ThemeIcon variant="light" color="cobalt" size={48} radius="md">
+              <f.icon size={26} stroke={1.6} />
             </ThemeIcon>
-            <Text fw={600} size="lg">{f.title}</Text>
-            <Text c="gray.7" size="md" lh={1.55}>{f.text}</Text>
-          </Stack>
+            <h3>{f.title}</h3>
+            <p>{f.text}</p>
+          </div>
         ))}
       </SimpleGrid>
 
-      <Stack gap="sm" mt={72}>
-        <Text fw={600} size="sm">Install on a Mac with Claude Code</Text>
-        <Group className="install" wrap="nowrap" gap="sm">
+      <div className="install">
+        <h3>Install on a Mac with Claude Code</h3>
+        <Group className="install__box" wrap="nowrap" gap="sm">
           <Code className="install__code">{INSTALL}</Code>
           <CopyButton value={INSTALL} timeout={2000}>
             {({ copied, copy }) => (
@@ -77,10 +74,10 @@ export function App() {
             )}
           </CopyButton>
         </Group>
-        <Anchor href="https://github.com/jasontheodorou/vellum" c="dark" size="sm" mt="sm" w="fit-content" className="github">
-          <IconBrandGithub size={16} /> Vellum on GitHub
+        <Anchor href="https://github.com/jasontheodorou/vellum" c="dark" className="github">
+          <IconBrandGithub size={18} /> Vellum on GitHub
         </Anchor>
-      </Stack>
+      </div>
     </Container>
   )
 }

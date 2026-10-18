@@ -10,6 +10,10 @@
 :root {
   --mantine-color-body: #fbfbf6;
 
+  /* Two gaps only: between sections, and between the parts of a section */
+  --gap-section: 96px;
+  --gap-inner: 32px;
+
   /* Vellum's own Terminal colours, used only inside the windows */
   --v-paper: #fcfcc7;
   --v-bar: #f0f0bb;
@@ -27,7 +31,11 @@
   clip-path: inset(50%); white-space: nowrap;
 }
 
-.page { padding-block: 96px; }
+.page { padding-block: var(--gap-section); }
+.page > * + * { margin-top: var(--gap-section); }
+
+/* Text boxes run from cap height to baseline, so each gap is the gap the eye sees */
+.tagline, .feature h3, .feature p, .install h3, .github { text-box: trim-both cap alphabetic; }
 
 /* ---------- Logo ---------- */
 
@@ -40,13 +48,21 @@
   font-weight: 400;
 }
 
-/* ---------- Line ---------- */
+/* ---------- Line, features and install ---------- */
 
 .tagline {
-  font-size: clamp(1.625rem, 1rem + 1.6vw, 2.5rem) !important;
-  line-height: 1.25 !important;
-  letter-spacing: -0.02em;
+  margin: var(--gap-inner) 0 0;
+  max-width: 16em;
+  font-size: clamp(2rem, 1.2rem + 2.4vw, 3.5rem);
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
 }
+.feature h3 { margin: var(--gap-inner) 0 0; font-size: clamp(1.375rem, 1.1rem + 0.6vw, 1.75rem); font-weight: 600; line-height: 1.2; letter-spacing: -0.01em; }
+.feature p { margin: var(--gap-inner) 0 0; font-size: clamp(1.125rem, 1rem + 0.35vw, 1.375rem); line-height: 1.45; color: var(--mantine-color-gray-7); }
+.install h3 { margin: 0; font-size: clamp(1.375rem, 1.1rem + 0.6vw, 1.75rem); font-weight: 600; line-height: 1.2; }
+.install__box { margin-top: var(--gap-inner); }
+.github { margin-top: var(--gap-inner); font-size: 1.125rem; }
 .cursor {
   display: inline-block;
   width: 0.5em;
@@ -55,21 +71,23 @@
   vertical-align: -0.12em;
   background: var(--v-blue);
 }
+/* The rest of the line, not typed yet: it holds its place so nothing reflows */
+.tagline__rest { color: transparent; }
+/* Once the line is written, the cursor blinks a few times and stops */
 @media (prefers-reduced-motion: no-preference) {
-  .cursor { animation: blink 1.1s steps(1) 4; }
+  .cursor--rest { animation: blink 1.1s steps(1) 3; }
 }
 @keyframes blink { 50% { opacity: 0; } }
 
 /* ---------- Switcher and windows ---------- */
 
-.stage-wrap { margin-top: 72px; }
 .switcher { background: #f1f1e6; }
 .switcher__label { font-family: var(--mantine-font-family-monospace); font-size: 13px; }
 
 .stage {
   --peek: clamp(28px, 3.4vw, 44px);
   position: relative;
-  margin-top: 24px;
+  margin-top: var(--gap-inner);
   height: clamp(380px, 34vw, 450px);
 }
 
@@ -145,7 +163,7 @@
 
 /* ---------- Install ---------- */
 
-.install {
+.install__box {
   padding: 8px 8px 8px 20px;
   background: #f1f1e6;
   border-radius: var(--mantine-radius-md);
@@ -159,12 +177,12 @@
   background: none !important;
   font-size: clamp(13px, 0.7rem + 0.25vw, 15px) !important;
 }
-.github { display: inline-flex; align-items: center; gap: 6px; }
+.github { display: flex; width: fit-content; align-items: center; gap: 8px; }
 
 /* ---------- Phones ---------- */
 
 @media (max-width: 699px) {
-  .page { padding-block: 64px; }
+  :root { --gap-section: 72px; --gap-inner: 16px; }
   .stage { height: 380px; --peek: 18px; --dx: 1; }
   .win__screen { padding: 16px 16px 14px; }
   .win__status { white-space: normal; }
