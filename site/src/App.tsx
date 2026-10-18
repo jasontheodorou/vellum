@@ -5,6 +5,7 @@ import { IconBrandGithub, IconCheck, IconCopy, IconEye, IconNotebook, IconSquare
 import { useState } from 'react'
 import { Windows } from './Windows'
 import { BrandPromise } from './BrandPromise'
+import { PageSpacing } from './spacing/PageSpacing'
 
 const INSTALL = 'curl -fsSL https://raw.githubusercontent.com/jasontheodorou/vellum/main/install.sh | bash'
 
@@ -38,7 +39,7 @@ export function App() {
 
       <Windows ready={ready} />
 
-      <SimpleGrid cols={{ base: 1, sm: 3 }} spacing={48} verticalSpacing={48}>
+      <SimpleGrid className="features" cols={{ base: 1, sm: 3 }} spacing={48} verticalSpacing={48}>
         {FEATURES.map((f) => (
           <div key={f.title} className="feature">
             <ThemeIcon variant="light" color="cobalt" size={48} radius="md">
@@ -68,6 +69,7 @@ export function App() {
           <IconBrandGithub size={18} /> Vellum on GitHub
         </Anchor>
       </div>
+      <PageSpacing />
     </Container>
   )
 }

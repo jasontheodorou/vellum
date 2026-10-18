@@ -24,7 +24,9 @@
   clip-path: inset(50%); white-space: nowrap;
 }
 
-.page { padding-block: var(--gap-section); }
+.page { position: relative; padding-block: var(--gap-section); }
+/* The spacing overlay sits in the page but takes no part in its spacing */
+.page > .spacing-overlay { margin-top: 0; }
 .page > * + * { margin-top: var(--gap-section); }
 
 /* Text boxes run from cap height to baseline, so each gap is the gap the eye sees */
