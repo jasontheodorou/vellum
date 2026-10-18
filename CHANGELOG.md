@@ -9,7 +9,7 @@ Scribe is now called Vellum, and sets up Apple's Terminal as well as Claude Code
 ### Added
 
 - `install.sh`: one Terminal command installs the plugin, the Terminal theme and the status line.
-- `vellum theme`: installs the Paper Mono font and the Vellum Terminal profile (warm ivory, deep ink, 18 point), and makes it the default for new and startup windows. `vellum theme undo` goes back to the previous profile.
+- `vellum theme`: installs the Paper Mono font and the Vellum Terminal profile (Man Page brightened: sunlight yellow, charcoal ink, Paper Mono 18 point), and makes it the default for new and startup windows. `vellum theme undo` goes back to the previous profile.
 - Theme updates: when a new Vellum profile ships, the next session offers to apply it. `vellum theme` replaces the old profile, keeps it the default and refreshes windows already using it; `vellum theme skip` says no to that update.
 
 ### Changed

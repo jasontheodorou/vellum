@@ -2,7 +2,7 @@
 
 Vellum sets up [Claude Code](https://claude.com/claude-code) on a Mac for running projects. It does three things:
 
-- **A calmer Terminal.** Warm ivory paper, deep ink text and the Paper Mono font, made Terminal's default.
+- **A brighter Terminal.** Sunny yellow paper, charcoal ink and the Paper Mono font, made Terminal's default.
 - **A journal for every project.** Claude keeps a written history of each one, so every project can learn from the ones before it.
 - **A project list with shapes and ports.** Each project gets its own shape and colour in the status line, and its own localhost port, so windows and servers never get mixed up.
 
@@ -32,14 +32,17 @@ Nothing needs admin rights. To go back to your old Terminal look, say "go back t
 
 ## The Terminal look
 
+Vellum is a brighter take on Terminal's Man Page profile: sunny yellow paper, charcoal ink and crisp accents.
+
 | Part | Colour |
 | --- | --- |
-| Background | `#F3EBD8` warm ivory |
-| Text | `#302B24` deep brown-black, and `#191611` for bold |
-| Selection | `#D8C7A5` muted sand |
-| Cursor | `#75583A` dark bronze |
+| Background | `#FFF095` sunlight yellow |
+| Text | `#282923` charcoal, and `#171813` for bold |
+| Selection | `#D5E5F5` pale sky blue |
+| Cursor | `#B53668` raspberry |
+| Accents | `#B63E32` red, `#347348` green, `#876000` amber, `#3455C5` cobalt blue, `#B53668` raspberry |
 
-The font is [Paper Mono](https://github.com/paper-design/paper-mono) at 18 point. All the coloured text programs print, such as errors in red and success in green, uses deeper colours chosen to be readable on ivory. The profile is for Apple's own Terminal app.
+The font is [Paper Mono](https://github.com/paper-design/paper-mono) at 18 point. Every Vellum colour has at least 4.5 to 1 contrast against the background. Cyan, white and the bright colours keep Terminal's own defaults, as in Man Page, and some of those are faint on yellow. The profile is for Apple's own Terminal app.
 
 ## What you can say
 

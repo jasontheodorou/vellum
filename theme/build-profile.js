@@ -1,33 +1,25 @@
 // Build theme/Vellum.terminal, the Terminal profile, from the colours below.
 //
-// Run with: osascript -l JavaScript theme/build-profile.js
+// Run with: osascript -l JavaScript theme/build-profile.js theme
 // Paper Mono must be installed first, because Terminal stores the font itself.
 // The colours come from the Vellum colour scheme. All are sRGB.
 
 ObjC.import('AppKit');
 
+// Man Page brightened: soft yellow paper, charcoal ink and crisp accents. Only
+// these colours are set; the other ANSI colours keep Terminal's defaults, as
+// Man Page does.
 var COLOURS = {
-  BackgroundColor: '#F3EBD8',
-  TextColor: '#302B24',
-  TextBoldColor: '#191611',
-  SelectionColor: '#D8C7A5',
-  CursorColor: '#75583A',
-  ANSIBlackColor: '#302B24',
-  ANSIRedColor: '#944238',
-  ANSIGreenColor: '#426448',
-  ANSIYellowColor: '#80601F',
-  ANSIBlueColor: '#365C80',
-  ANSIMagentaColor: '#775071',
-  ANSICyanColor: '#34676A',
-  ANSIWhiteColor: '#D8CFBD',
-  ANSIBrightBlackColor: '#706759',
-  ANSIBrightRedColor: '#A04438',
-  ANSIBrightGreenColor: '#486C46',
-  ANSIBrightYellowColor: '#86631D',
-  ANSIBrightBlueColor: '#3C6590',
-  ANSIBrightMagentaColor: '#855379',
-  ANSIBrightCyanColor: '#397175',
-  ANSIBrightWhiteColor: '#F9F3E6'
+  BackgroundColor: '#FFF095',
+  TextColor: '#282923',
+  TextBoldColor: '#171813',
+  CursorColor: '#B53668',
+  SelectionColor: '#D5E5F5',
+  ANSIRedColor: '#B63E32',
+  ANSIGreenColor: '#347348',
+  ANSIYellowColor: '#876000',
+  ANSIBlueColor: '#3455C5',
+  ANSIMagentaColor: '#B53668'
 };
 
 var FONT = 'PaperMono-Regular';
