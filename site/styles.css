@@ -1,0 +1,306 @@
+/* Vellum one-pager. Grid, spacing scale and type follow the Terminal Scribe page,
+   made quieter: near-white paper, ink, and Vellum's own colours only inside the window. */
+
+@font-face {
+  font-family: "Paper Mono";
+  src: url("assets/fonts/PaperMono.woff2") format("woff2");
+  font-weight: 100 800;
+  font-display: swap;
+}
+
+:root {
+  --container: 1600px;
+  --gutter: clamp(20px, 4vw, 64px);
+  --grid-gap: clamp(16px, 2vw, 32px);
+
+  --gap-para: 32px;
+  --gap-head: 24px;
+  --gap-title: 48px;
+  --gap-window: 80px;
+  --gap-block: 64px;
+  --gap-top: 96px;
+
+  --paper: #fcfcfa;
+  --tint: #f3f3ee;
+  --hairline: #e3e3dc;
+  --ink: #17171a;
+  --body: #2c2b2e;
+  --grey: #7f7d78;
+
+  /* Vellum's Terminal colours, used only inside the window */
+  --v-paper: #fcfcc7;
+  --v-ink: #282923;
+  --v-blue: #3455c5;
+  --v-green: #347348;
+  --v-grey: #66655a;
+
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "Paper Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--body);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, p, pre, figure { margin: 0; padding: 0; }
+
+/* Text boxes run from cap height to baseline, so CSS gaps are the gaps the eye sees */
+.title, .statement p, .benefit h2, .benefit p, .install h2, .install p, .close p {
+  text-box: trim-both cap alphabetic;
+}
+
+/* ---------- Grid ---------- */
+
+.container {
+  max-width: var(--container);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+.page {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  column-gap: var(--grid-gap);
+  padding-block: var(--gap-top);
+}
+
+.page > * { grid-column: 2 / 10; }
+
+/* ---------- Title and statement ---------- */
+
+.title {
+  font-family: var(--mono);
+  font-size: clamp(2.5rem, 0.75rem + 4.6vw, 6.5rem);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+  color: var(--ink);
+}
+
+.statement {
+  margin-top: var(--gap-title);
+  max-width: 28.6em;
+  font-size: clamp(1.25rem, 0.7rem + 1.1vw, 2.125rem);
+  line-height: 1.6;
+  color: var(--grey);
+}
+.statement p + p { margin-top: var(--gap-para); }
+.statement .ink { color: var(--ink); }
+
+/* ---------- The window: Vellum itself ---------- */
+
+.window {
+  margin-top: var(--gap-window);
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--v-paper);
+}
+
+.window__bar {
+  display: flex;
+  gap: 8px;
+  padding: 14px 16px;
+  background: var(--tint);
+  border-bottom: 1px solid var(--hairline);
+}
+.window__bar span {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #d5d4cd;
+}
+
+.window__screen {
+  padding: 32px 40px 40px;
+  font-family: var(--mono);
+  font-size: clamp(0.9375rem, 0.75rem + 0.45vw, 1.25rem);
+  line-height: 1.6;
+  color: var(--v-ink);
+}
+.window__screen p + p { margin-top: 0.4em; }
+.window__screen .window__you { color: var(--v-grey); margin-bottom: 1.2em; }
+.window__status {
+  margin-top: 2em !important;
+  white-space: pre;
+}
+.window__status b { font-weight: 700; }
+.window__shape { color: var(--v-blue); }
+.window__live { color: var(--v-green); }
+
+/* ---------- Benefits ---------- */
+
+.benefit {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  margin-top: var(--gap-block);
+}
+
+.num {
+  grid-column: 1;
+  justify-self: start;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 32px;
+  border: 1.5px solid var(--hairline);
+  border-radius: 2px;
+  font-family: var(--mono);
+  font-size: 14px;
+  font-variant-numeric: slashed-zero;
+  color: var(--grey);
+}
+
+.benefit__body { grid-column: 2 / 10; }
+
+.benefit h2, .install h2 {
+  font-family: var(--mono);
+  font-size: clamp(1.375rem, 1rem + 0.9vw, 2rem);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+}
+
+.benefit p, .install p {
+  max-width: 34em;
+  font-size: clamp(1.0625rem, 0.8rem + 0.6vw, 1.3125rem);
+  line-height: 1.6;
+}
+.benefit h2 + p, .install h2 + p { margin-top: var(--gap-head); }
+.benefit p + p { margin-top: var(--gap-para); }
+
+/* Things you say to Claude, set in the terminal's type */
+q {
+  quotes: none;
+  font-family: var(--mono);
+  font-size: 0.86em;
+  padding: 0.12em 0.4em;
+  background: var(--tint);
+  border-radius: 3px;
+  color: var(--ink);
+}
+
+/* ---------- Install ---------- */
+
+.install { margin-top: var(--gap-block); }
+
+.install__line {
+  margin-top: var(--gap-para);
+  padding: 24px;
+  background: var(--tint);
+  border-radius: 4px;
+  overflow-x: auto;
+  font-family: var(--mono);
+  font-size: clamp(0.875rem, 0.8rem + 0.2vw, 1rem);
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+/* ---------- Close ---------- */
+
+.close { margin-top: var(--gap-block); }
+.close__link {
+  font-family: var(--mono);
+  font-size: 15px;
+}
+.close__link a {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--hairline);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 0.3em;
+  transition: text-decoration-color 300ms ease-out;
+}
+.close__link a::before { content: "→ "; color: var(--v-blue); }
+.close__link a:hover { text-decoration-color: var(--ink); }
+a:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; border-radius: 2px; }
+
+/* ---------- Narrower screens ---------- */
+
+@media (max-width: 1023px) {
+  .page > *, .benefit__body { grid-column: 1 / -1; }
+  .num { grid-column: 1 / -1; }
+  .benefit__body { margin-top: var(--gap-head); }
+}
+
+@media (max-width: 599px) {
+  .page { padding-block: 64px; }
+  .window__screen { padding: 24px 20px 28px; }
+  .window__screen br { display: none; }
+  .window__status { white-space: normal; }
+}
+
+/* ---------- Design tool: spacing overlay and controls ---------- */
+
+.spacing {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 20;
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink);
+}
+.spacing[hidden], .spacing__panel[hidden], .spacing-overlay[hidden] { display: none; }
+.spacing__toggle, .spacing__reset {
+  font: inherit;
+  color: inherit;
+  padding: 8px 12px;
+  background: rgba(252, 252, 250, 0.86);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--hairline);
+  border-radius: 4px;
+  cursor: pointer;
+}
+.spacing__panel {
+  width: 280px;
+  padding: 16px;
+  background: rgba(252, 252, 250, 0.9);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--hairline);
+  border-radius: 4px;
+}
+.spacing__title { text-transform: uppercase; letter-spacing: 0.08em; color: var(--grey); }
+.spacing__row {
+  display: grid;
+  grid-template-columns: 1fr 32px;
+  align-items: center;
+  column-gap: 8px;
+  margin-top: 16px;
+}
+.spacing__row label { grid-column: 1 / -1; color: var(--grey); }
+.spacing__row input { margin: 8px 0 0; accent-color: var(--ink); }
+.spacing__row output { margin-top: 8px; text-align: right; font-variant-numeric: slashed-zero; }
+.spacing__reset { margin-top: 16px; }
+
+.spacing-overlay { position: absolute; inset: 0 0 auto 0; pointer-events: none; z-index: 10; }
+.spacing-overlay__band {
+  position: absolute;
+  right: 0;
+  background: rgba(23, 23, 26, 0.06);
+  border-left: 2px solid rgba(23, 23, 26, 0.5);
+}
+.spacing-overlay__band span {
+  position: absolute;
+  top: 50%;
+  left: 6px;
+  transform: translateY(-50%);
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1;
+  padding: 2px 4px;
+  background: var(--ink);
+  color: #fff;
+  border-radius: 2px;
+  white-space: nowrap;
+}

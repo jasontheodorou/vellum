@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vellum</title>
+  <meta name="description" content="A simple upgrade to the macOS Terminal for Claude Code: easy on the eyes, an always-on journal, and projects kept apart.">
+  <link rel="preload" href="assets/fonts/PaperMono.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="page container">
+
+    <h1 class="title">Vellum</h1>
+
+    <div class="statement">
+      <p class="ink">A terminal window that works with you, not against you.</p>
+      <p>Vellum is a simple upgrade to the macOS Terminal for Claude Code. It is easy on the eyes, it remembers what you decide, and it keeps your projects apart.</p>
+    </div>
+
+    <figure class="window" aria-label="A Terminal window in Vellum, with Claude Code running">
+      <div class="window__bar" aria-hidden="true"><span></span><span></span><span></span></div>
+      <div class="window__screen">
+        <p class="window__you">&gt; Where did we get to on the garden planner?</p>
+        <p>Last time, 16 October: chose raised beds over containers, <br>because the soil drains well.</p>
+        <p>Next: confirm the bed sizes.</p>
+        <p class="window__status"><span class="window__shape">&#9670;</span> <b>garden-planner</b>  <span class="window__live">live on :3001</span></p>
+      </div>
+    </figure>
+
+    <section class="benefit" aria-labelledby="b1">
+      <span class="num" aria-hidden="true">01</span>
+      <div class="benefit__body">
+        <h2 id="b1">Easy on the eyes</h2>
+        <p>Soft lemon paper, charcoal ink and the Paper Mono typeface, set large enough to read in comfort.</p>
+        <p>Every colour Claude Code uses is readable on the page, so nothing hides in pale text.</p>
+      </div>
+    </section>
+
+    <section class="benefit" aria-labelledby="b2">
+      <span class="num" aria-hidden="true">02</span>
+      <div class="benefit__body">
+        <h2 id="b2">A journal that is always on</h2>
+        <p>While you work, Vellum notes what you decide and why. When you finish, it sorts the notes into decisions, lessons and what to do next.</p>
+        <p>Ask <q>what did we decide about the header?</q> and Claude finds it, in your own words.</p>
+      </div>
+    </section>
+
+    <section class="benefit" aria-labelledby="b3">
+      <span class="num" aria-hidden="true">03</span>
+      <div class="benefit__body">
+        <h2 id="b3">Projects kept apart</h2>
+        <p>Each project gets its own shape and colour at the bottom of the window, so you can tell windows apart at a glance.</p>
+        <p>Each one also gets its own localhost port, so two projects never fight over the same address.</p>
+      </div>
+    </section>
+
+    <section class="install" aria-labelledby="install">
+      <h2 id="install">Install</h2>
+      <p>You need a Mac and Claude Code. Paste this line into Terminal and press Enter.</p>
+      <pre class="install__line"><code>curl -fsSL https://raw.githubusercontent.com/jasontheodorou/vellum/main/install.sh | bash</code></pre>
+    </section>
+
+    <footer class="close">
+      <p class="close__link"><a href="https://github.com/jasontheodorou/vellum">Vellum on GitHub</a></p>
+    </footer>
+
+  </main>
+
+  <!-- Design tool: spacing overlay and live controls, shown only with ?spacing. Remove when spacing is signed off. -->
+  <div class="spacing" hidden>
+    <div class="spacing__panel" id="spacing-panel" hidden>
+      <p class="spacing__title">Spacing scale</p>
+      <div class="spacing__rows"></div>
+      <button type="button" class="spacing__reset">Reset</button>
+    </div>
+    <button type="button" class="spacing__toggle" aria-expanded="false" aria-controls="spacing-panel">Spacing off</button>
+  </div>
+  <div class="spacing-overlay" aria-hidden="true" hidden></div>
+
+  <script src="spacing.js" defer></script>
+</body>
+</html>
