@@ -1,4 +1,4 @@
-// Vellum page: the logo's wave, the typing, and switching between windows.
+// Vellum page: the typing, and switching between windows.
 // The page reads in full without this file.
 
 const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -6,50 +6,6 @@ const store = {
   get(k) { try { return localStorage.getItem(k); } catch { return null; } },
   set(k, v) { try { localStorage.setItem(k, v); } catch {} },
 };
-
-// ---------- Logo: a small wave runs across it, and the blocks shimmer ----------
-
-const logo = document.querySelector('.logo');
-const pre = logo.querySelector('pre');
-const cols = [];
-const rows = pre.textContent.split('\n');
-pre.textContent = '';
-rows.forEach((row, r) => {
-  [...row].forEach((c, i) => {
-    if (c === ' ') { pre.append(' '); return; }
-    const s = document.createElement('span');
-    s.className = 'ch';
-    s.textContent = c;
-    (cols[i] ||= []).push(s);
-    pre.append(s);
-  });
-  if (r < rows.length - 1) pre.append('\n');
-});
-
-let waving = false;
-const wave = () => {
-  if (waving || reduce) return;
-  waving = true;
-  cols.forEach((col, i) => {
-    if (!col) return;
-    setTimeout(() => {
-      col.forEach((s) => {
-        s.classList.add('up');
-        if (s.textContent === '█') { s.dataset.block = '1'; s.textContent = '▓'; }
-      });
-      setTimeout(() => col.forEach((s) => {
-        s.classList.remove('up');
-        if (!s.dataset.block) return;
-        s.textContent = '▒';
-        setTimeout(() => { s.textContent = '█'; delete s.dataset.block; }, 90);
-      }), 200);
-    }, i * 16);
-  });
-  setTimeout(() => { waving = false; }, cols.length * 16 + 600);
-};
-logo.addEventListener('pointerenter', wave);
-logo.addEventListener('focus', wave);
-logo.addEventListener('click', wave);
 
 // ---------- Windows: bring one forward and Claude greets you with its recap ----------
 
