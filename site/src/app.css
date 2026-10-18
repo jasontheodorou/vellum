@@ -1,4 +1,4 @@
-/* What Mantine does not draw: the page ground, the logo and the Vellum windows. */
+/* What Mantine does not draw: the page ground, the wordmark and the Vellum windows. */
 
 @font-face {
   font-family: "Paper Mono";
@@ -23,7 +23,6 @@
   --v-blue: #3455c5;
   --v-green: #347348;
   --v-teal: #21717a;
-  --blocks: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 
 .visually-hidden {
@@ -35,17 +34,19 @@
 .page > * + * { margin-top: var(--gap-section); }
 
 /* Text boxes run from cap height to baseline, so each gap is the gap the eye sees */
-.tagline, .feature h3, .feature p, .install h3, .github { text-box: trim-both cap alphabetic; }
+.wordmark, .tagline, .feature h3, .feature p, .install h3, .github { text-box: trim-both cap alphabetic; }
 
-/* ---------- Logo ---------- */
+/* ---------- Wordmark ---------- */
 
-.logo { margin: 0; color: var(--v-blue); }
-.logo pre {
+/* Vellum's name in Paper Mono, the typeface it puts in Terminal */
+.wordmark {
   margin: 0;
-  font-family: var(--blocks);
-  font-size: clamp(7px, 1.25vw, 14px);
+  font-family: var(--mantine-font-family-monospace);
+  font-size: clamp(2.5rem, 1.6rem + 3vw, 4.5rem);
+  font-weight: 500;
   line-height: 1;
-  font-weight: 400;
+  letter-spacing: -0.03em;
+  color: #2b2a26;
 }
 
 /* ---------- Line, features and install ---------- */

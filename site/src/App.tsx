@@ -8,14 +8,6 @@ import { BrandPromise } from './BrandPromise'
 
 const INSTALL = 'curl -fsSL https://raw.githubusercontent.com/jasontheodorou/vellum/main/install.sh | bash'
 
-// The banner drawn in light shade, so it reads as print on paper, not a solid block
-const LOGO = `██╗   ██╗███████╗██╗     ██╗     ██╗   ██╗███╗   ███╗
-██║   ██║██╔════╝██║     ██║     ██║   ██║████╗ ████║
-██║   ██║█████╗  ██║     ██║     ██║   ██║██╔████╔██║
-╚██╗ ██╔╝██╔══╝  ██║     ██║     ██║   ██║██║╚██╔╝██║
- ╚████╔╝ ███████╗███████╗███████╗╚██████╔╝██║ ╚═╝ ██║
-  ╚═══╝  ╚══════╝╚══════╝╚══════╝ ╚═════╝ ╚═╝     ╚═╝`.replace(/█/g, '░')
-
 const FEATURES = [
   {
     icon: IconEye,
@@ -40,10 +32,7 @@ export function App() {
   return (
     <Container size="lg" className="page">
       <header>
-        <h1 className="logo">
-          <span className="visually-hidden">Vellum</span>
-          <pre aria-hidden="true">{LOGO}</pre>
-        </h1>
+        <h1 className="wordmark">Vellum</h1>
         <BrandPromise onDone={() => setReady(true)} />
       </header>
 
