@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useReducedMotion } from '@mantine/hooks'
 
-const PROMISE = 'A terminal window that works with you, not against you.'
+const PROMISE = 'Calm paper. Clear memory. Clean\u00a0workspaces.'
 
 // The brand promise types itself out once, then the cursor stops at the end.
 // The untyped rest stays in place but unseen, so the lines never reflow.
