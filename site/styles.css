@@ -116,12 +116,16 @@ h1, h2, p, pre, figure { margin: 0; padding: 0; }
   background: #d5d4cd;
 }
 
+/* Drawn the way Terminal draws Vellum: Paper Mono at 18pt, without the thinner
+   smoothing the rest of the page uses */
 .window__screen {
   padding: 32px 40px 40px;
   font-family: var(--mono);
-  font-size: clamp(0.9375rem, 0.75rem + 0.45vw, 1.25rem);
-  line-height: 1.6;
+  font-size: clamp(0.9375rem, 0.6rem + 0.9vw, 1.125rem);
+  line-height: 1.5;
   color: var(--v-ink);
+  -webkit-font-smoothing: auto;
+  -moz-osx-font-smoothing: auto;
 }
 .window__screen p + p { margin-top: 0.4em; }
 .window__screen .window__you { color: var(--v-grey); margin-bottom: 1.2em; }
