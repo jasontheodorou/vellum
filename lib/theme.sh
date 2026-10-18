@@ -168,13 +168,13 @@ theme_undo() {
 
 # The welcome screen, shown once by the installer in the new Vellum window.
 cmd_welcome() {
-  local ink="" berry="" blue="" dim="" off=""
+  local ink="" blue="" dim="" off=""
   if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
-    ink=$'\033[1m' berry=$'\033[35m' blue=$'\033[34m' dim=$'\033[90m' off=$'\033[0m'
+    ink=$'\033[1m' blue=$'\033[34m' dim=$'\033[90m' off=$'\033[0m'
   fi
   cat <<EOF
 
-${berry}  ██╗   ██╗███████╗██╗     ██╗     ██╗   ██╗███╗   ███╗
+${blue}  ██╗   ██╗███████╗██╗     ██╗     ██╗   ██╗███╗   ███╗
   ██║   ██║██╔════╝██║     ██║     ██║   ██║████╗ ████║
   ██║   ██║█████╗  ██║     ██║     ██║   ██║██╔████╔██║
   ╚██╗ ██╔╝██╔══╝  ██║     ██║     ██║   ██║██║╚██╔╝██║
