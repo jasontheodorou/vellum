@@ -17,6 +17,7 @@
   --v-grey: #66655a;
   --v-blue: #3455c5;
   --v-blue-light: #5674da;
+  --v-blue-wordmark-look: #7b91e2;
   --v-green: #347348;
   --v-teal: #21717a;
 }
@@ -72,7 +73,9 @@
   background: var(--v-blue-light);
 }
 .tagline { --promise-ink: #2b2a26; }
-.cursor--faded { background: var(--promise-ink); }
+/* The cursor and the wordmark share a colour, but a solid block reads darker than letters.
+   After ten seconds the cursor fades to a lighter shade, so it looks like the wordmark. */
+.cursor--faded { background: var(--v-blue-wordmark-look); }
 @media (prefers-reduced-motion: no-preference) {
   .cursor { transition: background-color 1.6s ease-out; }
 }
