@@ -15,7 +15,7 @@ var COLOURS = {
   BackgroundColor: '#FCFCC7',
   TextColor: '#282923',
   TextBoldColor: '#171813',
-  CursorColor: '#B53668',
+  CursorColor: '#3455C5',
   SelectionColor: '#D5E5F5',
   ANSIBlackColor: '#282923',
   ANSIRedColor: '#B63E32',

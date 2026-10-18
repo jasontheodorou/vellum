@@ -46,7 +46,7 @@ Vellum is a brighter take on Terminal's Man Page profile: sunny yellow paper, ch
 | Background | `#FCFCC7` pale lemon |
 | Text | `#282923` charcoal, and `#171813` for bold |
 | Selection | `#D5E5F5` pale sky blue |
-| Cursor | `#B53668` raspberry |
+| Cursor | `#3455C5` cobalt blue |
 | Accents | `#B63E32` red, `#347348` green, `#876000` amber, `#3455C5` cobalt blue, `#B53668` raspberry, `#21717A` teal |
 | Bright accents | `#B04A1E` Claude orange, `#2B6A3D` green, `#7A5600` amber, `#2C47AE` blue, `#9E2D5B` berry, `#1B6670` teal, `#66655A` grey |
 | Light colours | `#FFFADB` cream and `#FFFFFF` white, for Claude's message backgrounds |
