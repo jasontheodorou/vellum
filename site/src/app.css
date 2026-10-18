@@ -1,12 +1,5 @@
 /* What Mantine does not draw: the page ground, the wordmark and the Vellum windows. */
 
-@font-face {
-  font-family: "Paper Mono";
-  src: url("./assets/fonts/PaperMono.woff2") format("woff2");
-  font-weight: 100 800;
-  font-display: swap;
-}
-
 :root {
   --mantine-color-body: #fbfbf6;
 
@@ -21,6 +14,7 @@
   --v-ink: #282923;
   --v-grey: #66655a;
   --v-blue: #3455c5;
+  --v-blue-light: #5674da;
   --v-green: #347348;
   --v-teal: #21717a;
 }
@@ -38,15 +32,14 @@
 
 /* ---------- Wordmark ---------- */
 
-/* Vellum's name in Paper Mono, the typeface it puts in Terminal */
+/* Vellum's name in a lighter shade of its cobalt */
 .wordmark {
   margin: 0;
-  font-family: var(--mantine-font-family-monospace);
-  font-size: clamp(2.5rem, 1.6rem + 3vw, 4.5rem);
+  font-size: clamp(2.75rem, 1.6rem + 3.4vw, 5rem);
   font-weight: 500;
   line-height: 1;
-  letter-spacing: -0.03em;
-  color: #2b2a26;
+  letter-spacing: -0.035em;
+  color: var(--v-blue-light);
 }
 
 /* ---------- Line, features and install ---------- */
@@ -71,7 +64,7 @@
   height: 1em;
   margin-left: 0.15em;
   vertical-align: -0.12em;
-  background: var(--v-blue);
+  background: var(--v-blue-light);
 }
 /* The rest of the line, not typed yet: it holds its place so nothing reflows */
 .tagline__rest { color: transparent; }

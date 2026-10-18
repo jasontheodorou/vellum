@@ -15,7 +15,7 @@ const theme = createTheme({
   colors: { cobalt },
   primaryColor: 'cobalt',
   fontFamily: '"Geist", -apple-system, "Segoe UI", system-ui, sans-serif',
-  fontFamilyMonospace: '"Paper Mono", ui-monospace, "SF Mono", Menlo, monospace',
+  fontFamilyMonospace: '"Geist Mono", ui-monospace, "SF Mono", Menlo, monospace',
   headings: { fontFamily: '"Geist", -apple-system, "Segoe UI", system-ui, sans-serif', fontWeight: '500' },
   defaultRadius: 'md',
 })
