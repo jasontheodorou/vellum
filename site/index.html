@@ -5,74 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Vellum</title>
   <meta name="description" content="Vellum is a simple upgrade to the macOS Terminal for Claude Code. A terminal window that works with you, not against you.">
-  <link rel="preload" href="assets/fonts/PaperMono.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css">
-  <script>document.documentElement.classList.add('js')</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap">
 </head>
 <body>
-  <main class="page">
-
-    <header class="hero">
-      <h1 class="logo"><span class="visually-hidden">Vellum</span><pre aria-hidden="true">██╗   ██╗███████╗██╗     ██╗     ██╗   ██╗███╗   ███╗
-██║   ██║██╔════╝██║     ██║     ██║   ██║████╗ ████║
-██║   ██║█████╗  ██║     ██║     ██║   ██║██╔████╔██║
-╚██╗ ██╔╝██╔══╝  ██║     ██║     ██║   ██║██║╚██╔╝██║
- ╚████╔╝ ███████╗███████╗███████╗╚██████╔╝██║ ╚═╝ ██║
-  ╚═══╝  ╚══════╝╚══════╝╚══════╝ ╚═════╝ ╚═╝     ╚═╝</pre></h1>
-    </header>
-
-    <section class="stage" aria-label="Three projects, each in its own Vellum window">
-      <article class="win" style="--accent: var(--v-blue)">
-        <button class="win__bar" type="button"><span class="win__dots" aria-hidden="true"></span><span class="visually-hidden">Reopen </span><span class="win__title">garden-planner</span></button>
-        <div class="win__screen">
-          <p class="win__cmd">~/projects/garden-planner $ claude</p>
-          <p class="win__recap">Last time, 16 Oct: chose raised beds, because the soil drains well. Next: confirm the bed&nbsp;sizes.</p>
-          <p class="win__you">&gt; what did we decide about the paths?</p>
-          <p class="win__claude">Gravel, on 12 Oct. It was cheaper than paving and drains&nbsp;better.</p>
-          <p class="win__status"><span class="win__shape">◆</span> <b>garden-planner</b>  <span class="win__live">live on :3001</span></p>
-        </div>
-      </article>
-      <article class="win" style="--accent: var(--v-green)">
-        <button class="win__bar" type="button"><span class="win__dots" aria-hidden="true"></span><span class="visually-hidden">Reopen </span><span class="win__title">recipe-box</span></button>
-        <div class="win__screen">
-          <p class="win__cmd">~/projects/recipe-box $ claude</p>
-          <p class="win__recap">Last time, 17 Oct: added search by ingredient. Next: test it on a&nbsp;phone.</p>
-          <p class="win__you">&gt; why did we drop the shopping list?</p>
-          <p class="win__claude">On 9 Oct you said it was "too much for a first version". It is saved under&nbsp;decisions.</p>
-          <p class="win__status"><span class="win__shape">●</span> <b>recipe-box</b>  <span class="win__live">live on :3002</span></p>
-        </div>
-      </article>
-      <article class="win" style="--accent: var(--v-teal)">
-        <button class="win__bar" type="button"><span class="win__dots" aria-hidden="true"></span><span class="visually-hidden">Reopen </span><span class="win__title">portfolio</span></button>
-        <div class="win__screen">
-          <p class="win__cmd">~/projects/portfolio $ claude</p>
-          <p class="win__recap">Last time, 18 Oct: wrote the about page. Next: choose three case&nbsp;studies.</p>
-          <p class="win__you">&gt; have I dealt with dark mode before?</p>
-          <p class="win__claude">Yes, in recipe-box. The lesson: check both themes on a phone&nbsp;first.</p>
-          <p class="win__status"><span class="win__shape">▲</span> <b>portfolio</b>  <span class="win__live">live on :3003</span></p>
-        </div>
-      </article>
-      <p class="stage__hint" aria-hidden="true">Click a window to reopen that project</p>
-    </section>
-
-    <p class="tagline">A terminal window that works with you, not against&nbsp;you.<span class="cursor" aria-hidden="true"></span></p>
-
-    <ul class="points">
-      <li><b>Easy on the eyes.</b> Soft lemon paper, dark ink, and every colour Claude uses readable on the page.</li>
-      <li><b>Remembers for you.</b> An always-on journal of what you decided and why, with a short recap each time you come back.</li>
-      <li><b>Keeps projects apart.</b> Each window gets its own shape, and each project its own localhost port.</li>
-    </ul>
-
-    <section class="install" aria-labelledby="install-title">
-      <h2 id="install-title">Install on a Mac with Claude Code</h2>
-      <div class="install__box">
-        <code>curl -fsSL https://raw.githubusercontent.com/jasontheodorou/vellum/main/install.sh | bash</code>
-        <button class="install__copy" type="button" hidden>Copy</button>
-      </div>
-      <p class="install__more"><a href="https://github.com/jasontheodorou/vellum">Vellum on GitHub</a></p>
-    </section>
-
-  </main>
-  <script src="main.js" defer></script>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
 </body>
 </html>
