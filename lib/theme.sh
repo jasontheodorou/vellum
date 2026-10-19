@@ -218,6 +218,16 @@ else:
     os.replace(tmp, path)
     changed = True
     print(said + " Restart Claude Code to see it.")
+# The installer turned off Claude Code's own recap when it had no setting.
+if "awaySummaryEnabled" not in before and data.get("awaySummaryEnabled") is False:
+    data.pop("awaySummaryEnabled")
+    tmp = path + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(data, f, indent=2)
+        f.write("\n")
+    os.replace(tmp, path)
+    changed = True
+    print("Claude Code's own recap after five minutes away is back on.")
 if str((data.get("statusLine") or {}).get("command", "")).endswith("vellum statusline"):
     print("Vellum's status line is still on. To remove it, delete the \"statusLine\" entry from %s." % path)
 sys.exit(0 if changed else 1)

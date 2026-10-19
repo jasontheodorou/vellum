@@ -394,6 +394,13 @@ hook_session_start() {
   root="$(project_root "${cwd:-${CLAUDE_PROJECT_DIR:-$PWD}}")"
   source="$(json_field "$input" source)"
   message="$(take_notices "$root")"
+  # The return recap counts the break from here. A resumed conversation may
+  # be days old, so its first prompt gets the recap.
+  if [ "$source" = "resume" ]; then
+    mark_prompt_time "$(json_field "$input" session_id)" 0
+  else
+    mark_prompt_time "$(json_field "$input" session_id)"
+  fi
   if [ "$source" = "startup" ] || [ -z "$source" ]; then
     recap="$(
       set_project "$root"
@@ -645,6 +652,7 @@ hook_session_end() {
   session="$(json_field "$input" session_id)"
   [ -n "$session" ] || [ -z "$transcript" ] || session="$(basename "$transcript" .jsonl)"
   [ -n "$session" ] && sfile="$SESSIONS/$(__sanitize "$session")"
+  [ -n "$session" ] && rm -f "$PROMPT_TIMES/$(__sanitize "$session")"
 
   if [ "$(config_get background on)" != "on" ]; then
     rm -f ${sfile:+"$sfile"}
@@ -907,10 +915,58 @@ The session also covered other projects, or started outside this one. Record onl
   PROJECT_LOCK=""
 }
 
+# ---------------------------------------------------------------------------
+# Return recap
+# ---------------------------------------------------------------------------
+
+# When each session's last prompt was sent, one file per session.
+PROMPT_TIMES="$VELLUM_HOME/.state/prompts"
+
+# Record the time of a session's latest prompt (or the time given).
+mark_prompt_time() {
+  local session="$1" when="${2:-$(date +%s)}"
+  [ -n "$session" ] || return 0
+  mkdir -p "$PROMPT_TIMES" 2>/dev/null || return 0
+  echo "$when" >"$PROMPT_TIMES/$(__sanitize "$session")" 2>/dev/null || true
+}
+
+# The UserPromptSubmit hook. It runs on every prompt, so it does almost
+# nothing unless the person has been away for a while (recap-after, an hour
+# by default). Then they see the one-line "Last time…" recap once, the same
+# line a new session starts with.
+hook_prompt() {
+  is_helper_session && return 0
+  local input="" session file last now after recap root message
+  [ -t 0 ] || input="$(cat || true)"
+  session="$(json_field "$input" session_id)"
+  [ -n "$session" ] || return 0
+  file="$PROMPT_TIMES/$(__sanitize "$session")"
+  now="$(date +%s)"
+  last="$(cat "$file" 2>/dev/null)"
+  mark_prompt_time "$session" "$now"
+  # No time yet means this session began before Vellum, so there is no break
+  # to measure.
+  case "$last" in ''|*[!0-9]*) return 0 ;; esac
+  after="$(config_get recap-after 60)"
+  case "$after" in ''|off|0|*[!0-9]*) return 0 ;; esac
+  [ $((now - last)) -ge $((after * 60)) ] || return 0
+
+  root="$(project_root "$(json_field "$input" cwd)")"
+  [ "$root" != "$HOME_P" ] || return 0
+  recap="$(
+    set_project "$root"
+    [ -d "$JOURNAL" ] && [ ! -f "$JOURNAL/.paused" ] && last_time_line
+  )"
+  [ -n "$recap" ] || return 0
+  message="$(printf 'Welcome back. %s' "$recap" | json_string)" || return 0
+  printf '{"systemMessage":%s}\n' "$message"
+}
+
 cmd_hook() {
   case "${1:-}" in
     session-start) hook_session_start ;;
     session-end)   hook_session_end ;;
+    prompt)        hook_prompt ;;
     curator)       curator_worker ;;
     *) die "unknown hook '${1:-}'" ;;
   esac

@@ -92,7 +92,7 @@ Journal
   vellum off [--yes]         Turn journaling off here and delete the journal
   vellum off --yes --delete-tracked  Delete the journal even when git tracks it
   vellum config [KEY VALUE]  Settings: background on|off, model NAME|default,
-                             projects-dir FOLDER
+                             projects-dir FOLDER, recap-after MINUTES|off
   vellum migrate             Move a journal from the old journal/ folder
   vellum remove-old-install  Remove the old curl-installed version of Scribe
 

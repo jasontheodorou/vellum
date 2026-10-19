@@ -1,5 +1,5 @@
 {
-  "description": "Vellum: load the project journal when a session starts, and start the curator to organise it when a session ends.",
+  "description": "Vellum: load the project journal when a session starts, give a one-line recap when you come back after a long break, and start the curator to organise the journal when a session ends.",
   "hooks": {
     "SessionStart": [
       {
@@ -8,6 +8,17 @@
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/vellum\" hook session-start",
             "timeout": 15
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/vellum\" hook prompt",
+            "timeout": 5
           }
         ]
       }

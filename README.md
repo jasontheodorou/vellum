@@ -148,7 +148,7 @@ Claude reads the overview, your preferences and the index whenever you open a pr
 
 ## Small things that just happen
 
-- **Last time.** When you start Claude in a project, one line reminds you where you were, such as "Last time, 16 Oct: chose raised beds. Next: confirm bed sizes."
+- **Last time.** When you start Claude in a project, one line reminds you where you were, such as "Last time, 16 Oct: chose raised beds. Next: confirm bed sizes." You see it again only when you come back after an hour or more away. To change the hour, say "show the recap after 30 minutes away", or "turn off the return recap". Claude Code has its own recap after every five minutes away, so the installer turns that one off.
 - **Journal updates.** If the curator changed a journal after your last session, one line says what, such as "Journal updated after your last session: garden-planner, 1 decision, lessons and the overview. Say "undo the journal update" to reverse it."
 - **The right port.** Every project has its own port, and Claude uses it when it starts the project's server, so two projects never clash.
 - **The status line.** The bottom line shows the project's name in its own colour, next to its own shape (● ◆ ▲ ■ and so on), so several open windows are easy to tell apart. The colours come from your terminal's theme, so they suit your background, and the name is always in your normal text colour. Set `NO_COLOR` to turn colour off. It adds more only when something needs your attention: the server is live, you are on a side branch, commits are waiting to be pushed, or the journal is paused. The installer turns it on, unless you already have a status line of your own.
@@ -191,6 +191,7 @@ Start Claude in your home folder (just open Terminal and type `claude`). Claude 
 
 Your projects, journals and library are not deleted, because they are your work. Some other things also stay until you remove them:
 
+- **Claude Code's recap.** `vellum theme undo` turns Claude Code's own recap back on. If you skipped step 1, type `/config` in Claude Code and turn recaps on.
 - **Claude Code's theme.** If you skipped step 1, Claude Code stays on "Light mode (ANSI colours only)". Type `/config` in Claude Code to choose another theme.
 - **The status line.** Delete the `statusLine` entry from `~/.claude/settings.json`. Or put back the whole file from `~/.claude/settings.json.before-vellum`, which is how it was before you installed Vellum. That also removes any settings you changed since.
 - **The Vellum Terminal profile.** In Terminal, open Settings, then Profiles, choose Vellum and click the minus button. Choose another profile as the default first.

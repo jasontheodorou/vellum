@@ -157,6 +157,7 @@ cmd_config() {
     echo "background   = $(config_get background on)"
     echo "model        = $(config_get model default)"
     echo "projects-dir = $(config_get projects-dir "$HOME/projects")"
+    echo "recap-after  = $(config_get recap-after 60)"
     return 0
   fi
   case "$key" in
@@ -189,7 +190,15 @@ cmd_config() {
       config_set projects-dir "$value"
       echo "New projects will go in $value."
       ;;
-    *) die "unknown setting '$key' (settings: background, model, projects-dir)" ;;
+    recap-after)
+      [ -z "$value" ] && { config_get recap-after 60; return 0; }
+      case "$value" in
+        off|0) config_set recap-after off; echo "No recap when you come back to a session. A new session still starts with one." ;;
+        *[!0-9]*) die "recap-after must be a number of minutes, or 'off'" ;;
+        *) config_set recap-after "$value"; echo "After $value minutes away, your next prompt shows a one-line recap of the project." ;;
+      esac
+      ;;
+    *) die "unknown setting '$key' (settings: background, model, projects-dir, recap-after)" ;;
   esac
 }
 

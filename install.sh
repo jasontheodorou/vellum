@@ -93,6 +93,12 @@ done = []
 if data.get("theme") != theme:
     data["theme"] = theme
     done.append("theme")
+# Claude Code's own recap appears after every five minutes away. Vellum gives
+# one when a session starts and after a long break instead. A choice the
+# person made already is left alone.
+if "awaySummaryEnabled" not in data:
+    data["awaySummaryEnabled"] = False
+    done.append("recap")
 current = (data.get("statusLine") or {}).get("command", "")
 if current == command:
     pass
@@ -185,6 +191,9 @@ EOF
   case " $settings_out " in
     *" own-statusline "*) own_statusline=1 ;;
     *) step "The status line shows each project's shape, name and live port." ;;
+  esac
+  case " $settings_out " in
+    *" recap "*) step "Recaps come from Vellum: one when a session starts, and one after an hour away." ;;
   esac
 
   # Welcome: in the new Vellum window if Terminal opened one, so it shows in

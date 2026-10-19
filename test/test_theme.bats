@@ -150,3 +150,13 @@ teardown() { teardown_isolated_env; }
   grep -q '"theme": "light"' "$HOME/.claude/settings.json"
   grep -q "left alone" <<<"$output"
 }
+
+@test "theme undo turns Claude Code's own recap back on" {
+  mkdir -p "$HOME/.claude"
+  echo '{}' > "$HOME/.claude/settings.json.before-vellum"
+  echo '{"theme": "light-ansi", "awaySummaryEnabled": false}' > "$HOME/.claude/settings.json"
+  run "$VELLUM_BIN" theme undo
+  [ "$status" -eq 0 ]
+  refute grep -q awaySummaryEnabled "$HOME/.claude/settings.json"
+  grep -q "recap after five minutes away is back on" <<<"$output"
+}

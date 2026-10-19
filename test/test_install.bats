@@ -210,3 +210,14 @@ JSON
   run bash "$VELLUM_REPO/install.sh"
   [[ "$output" == *"Welcome to Vellum"* ]] || false
 }
+
+@test "install: turns off Claude Code's own recap, unless the person chose already" {
+  bash "$VELLUM_REPO/install.sh" >/dev/null
+  settings | grep -q '"awaySummaryEnabled": false'
+}
+
+@test "install: leaves Claude Code's recap setting the person chose" {
+  echo '{"awaySummaryEnabled": true}' > "$CLAUDE_CONFIG_DIR/settings.json"
+  bash "$VELLUM_REPO/install.sh" >/dev/null
+  settings | grep -q '"awaySummaryEnabled": true'
+}

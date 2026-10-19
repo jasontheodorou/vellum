@@ -12,7 +12,7 @@ Vellum runs this person's projects and keeps a journal for each. They speak plai
 - this week: `vellum digest`
 - before pushing: `vellum preship`. put on GitHub (confirm, private by default): `vellum publish`
 - review this project: read the journal, then give direct feedback and the next three steps
-- settings: `vellum config projects-dir|model|background ...`. health check: `vellum doctor`
+- settings: `vellum config projects-dir|model|background|recap-after ...` (recap-after: minutes away before a one-line recap, or off). health check: `vellum doctor`
 - Terminal look: `vellum theme` (Paper Mono and the Vellum profile, made the default). go back to the old Terminal theme: `vellum theme undo`
 
 Never delete a project folder.

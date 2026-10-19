@@ -39,7 +39,7 @@ Delete `~/.vellum/recall/` at any time. It is rebuilt the next time you search.
 | Recall copies | `~/.vellum/recall/` |
 | One-line messages about the curator's last run, shown at the start of your next session and then deleted | `~/.vellum/notices/` |
 | Which project folders a running session opened, so the curator knows which journals to organise. Each note is deleted when the session ends | `~/.vellum/sessions/` |
-| Sessions waiting for the curator, and its lock | `~/.vellum/.state/` |
+| Sessions waiting for the curator, and its lock. When each running session last had a prompt, for the return recap; deleted when the session ends | `~/.vellum/.state/` |
 | A short-lived note of which ports are in use, for the status line | `~/.vellum/.cache/` |
 | A log of what Vellum did | `~/.vellum/vellum.log` |
 | Which Terminal profile was the default before Vellum, and which version of the Vellum profile is installed | `~/.vellum/theme-*` |
@@ -78,12 +78,12 @@ When you ask for an archive, Claude reads the journal to write a summary. That r
 
 The installer changes these things:
 
-- **Claude Code's settings.** It sets `theme` to "Light mode (ANSI colours only)" and adds a `statusLine` in `~/.claude/settings.json`. It keeps a copy of the file as it was first, in `~/.claude/settings.json.before-vellum`, and never replaces that copy.
+- **Claude Code's settings.** It sets `theme` to "Light mode (ANSI colours only)", adds a `statusLine`, and turns off Claude Code's own recap (`awaySummaryEnabled`) unless you chose that setting already, in `~/.claude/settings.json`. It keeps a copy of the file as it was first, in `~/.claude/settings.json.before-vellum`, and never replaces that copy.
 - **Fonts.** It copies Paper Mono into `~/Library/Fonts`.
 - **Terminal.** It adds the Vellum profile and makes it the default for new windows.
 - **The old Scribe.** If the first Scribe is still installed, it removes Scribe's hooks from `~/.claude/settings.json` (keeping a backup) and the line Scribe added to `~/.zshrc`, `~/.bashrc` or `~/.bash_profile`.
 
-`vellum theme undo` puts back the Terminal profile and Claude Code's theme. [The README](README.md#uninstall) explains how to remove the rest.
+`vellum theme undo` puts back the Terminal profile, Claude Code's theme and Claude Code's recap. [The README](README.md#uninstall) explains how to remove the rest.
 
 While Claude Code runs, Vellum sets `PORT` to the project's port for the commands Claude runs, so servers start on the right port. It does not change your shell.
 
