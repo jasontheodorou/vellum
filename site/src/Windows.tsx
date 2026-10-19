@@ -86,7 +86,7 @@ function Win({ project, slot, typing, run }: { project: Project; slot: number; t
           </p>
         ))}
         <p className="win__status">
-          <span className="win__shape">{project.shape}</span> <b>{project.name}</b>{'  '}
+          <span className="win__shape" aria-hidden="true">{project.shape}</span> <b>{project.name}</b>{'  '}
           <span className="win__live">live on :{project.port}</span>
         </p>
       </div>
@@ -112,7 +112,7 @@ export function Windows({ ready }: { ready: boolean }) {
         onChange={(v) => { setActive(Number(v)); setOpened((n) => n + 1) }}
         data={PROJECTS.map((p, i) => ({
           value: String(i),
-          label: <span className="switcher__label"><span style={{ color: p.colour }}>{p.shape}</span> {p.name}</span>,
+          label: <span className="switcher__label"><span style={{ color: p.colour }} aria-hidden="true">{p.shape}</span> {p.name}</span>,
         }))}
         radius="xl"
         size="sm"

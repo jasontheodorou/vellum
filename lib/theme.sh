@@ -157,13 +157,71 @@ cmd_theme() {
 }
 
 theme_undo() {
-  local previous
+  local previous terminal_done="" claude_out="" claude_done=""
   previous="$(cat "$THEME_PREVIOUS" 2>/dev/null)"
-  [ -n "$previous" ] || die "there is no earlier Terminal profile to go back to"
-  has_terminal_profile "$previous" || die "Terminal no longer has the '$previous' profile"
-  set_default_profile "$previous" || die "could not make $previous Terminal's default profile"
-  rm -f "$THEME_PREVIOUS"
-  echo "New Terminal windows open in $previous again. The Vellum profile and Paper Mono are still installed."
+  if [ -n "$previous" ]; then
+    has_terminal_profile "$previous" || die "Terminal no longer has the '$previous' profile"
+    set_default_profile "$previous" || die "could not make $previous Terminal's default profile"
+    rm -f "$THEME_PREVIOUS"
+    terminal_done=1
+    echo "New Terminal windows open in $previous again. The Vellum profile and Paper Mono are still installed."
+  fi
+  claude_out="$(claude_theme_undo)" && claude_done=1
+  if [ -z "$terminal_done" ] && [ -z "$claude_done" ]; then
+    [ -n "$claude_out" ] && printf '%s\n' "$claude_out" >&2
+    die "there is no earlier Terminal profile to go back to"
+  fi
+  [ -n "$terminal_done" ] || echo "There is no earlier Terminal profile to go back to, so Terminal was left alone."
+  [ -n "$claude_out" ] && printf '%s\n' "$claude_out"
+  return 0
+}
+
+# Put Claude Code's theme back to what it was before the installer set it,
+# using the copy of settings.json the installer kept. Prints what it did, and
+# fails when the theme was not changed (the installer never ran, the theme was
+# already changed, or it could not be).
+claude_theme_undo() {
+  local settings="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/settings.json"
+  local backup="$settings.before-vellum"
+  [ -f "$backup" ] && [ -f "$settings" ] || return 1
+  if ! /usr/bin/python3 -c '' </dev/null >/dev/null 2>&1; then
+    echo "Claude Code's theme was not changed back, because macOS's python3 is not available. To change it yourself, type /config in Claude Code and choose a theme."
+    return 1
+  fi
+  /usr/bin/python3 -I - "$settings" "$backup" <<'PY'
+import json, os, sys
+path, backup = sys.argv[1:3]
+VELLUM_THEME = "light-ansi"
+try:
+    data = json.load(open(path))
+    before = json.load(open(backup))
+    assert isinstance(data, dict) and isinstance(before, dict)
+except (ValueError, AssertionError, OSError):
+    print("Claude Code's theme was not changed back, because a settings file could not be read. To change it yourself, type /config in Claude Code and choose a theme.")
+    sys.exit(1)
+changed = False
+if data.get("theme") != VELLUM_THEME:
+    print("Claude Code's theme is no longer Vellum's, so it was left alone.")
+elif before.get("theme") == VELLUM_THEME:
+    print("Claude Code's theme was already Light mode (ANSI colours only) before Vellum, so it was left alone.")
+else:
+    if "theme" in before:
+        data["theme"] = before["theme"]
+        said = "Claude Code's theme is back to \"%s\"." % before["theme"]
+    else:
+        data.pop("theme", None)
+        said = "Claude Code's theme is back to its default."
+    tmp = path + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(data, f, indent=2)
+        f.write("\n")
+    os.replace(tmp, path)
+    changed = True
+    print(said + " Restart Claude Code to see it.")
+if str((data.get("statusLine") or {}).get("command", "")).endswith("vellum statusline"):
+    print("Vellum's status line is still on. To remove it, delete the \"statusLine\" entry from %s." % path)
+sys.exit(0 if changed else 1)
+PY
 }
 
 # The welcome screen, shown once by the installer in the new Vellum window.

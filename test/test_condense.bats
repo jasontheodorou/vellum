@@ -46,3 +46,27 @@ check_condensed() {
   jq -r -f "$VELLUM_REPO/templates/condense.jq" "$FIXTURE" > "$TEST_HOME/out.txt"
   [ "$(wc -c < "$TEST_HOME/out.txt")" -lt $(( $(wc -c < "$FIXTURE") / 4 )) ]
 }
+
+@test "condense skips lines that are not the expected shape, with jq and with python3" {
+  bad="$TEST_HOME/bad.jsonl"
+  cat > "$bad" <<'JSONL'
+{"type":"user","message":{"content":["a string block"]}}
+[1,2,3]
+"just a string"
+{"type":"assistant","message":"not an object"}
+{"type":"assistant","message":{"content":[{"type":"text","text":"hello"},5,null,{"type":"tool_use","name":"Bash","input":{"command":"ls"}}]}}
+{"type":"user","message":{"content":[{"type":"text","text":null}]}}
+{"type":"user", "half written
+JSONL
+  mkdir -p "$TEST_HOME/nojq"
+  for t in bash sh sed awk grep cat rm mkdir dirname basename python3; do
+    p=$(command -v $t) && ln -sf "$p" "$TEST_HOME/nojq/$t"
+  done
+  PATH="$TEST_HOME/nojq" bash -c "TEMPLATES='$VELLUM_REPO/templates'; source '$VELLUM_REPO/lib/common.sh'; source '$VELLUM_REPO/lib/journal.sh'; condense_transcript '$bad' '$TEST_HOME/py.txt'"
+  printf 'PERSON: a string block\nCLAUDE: hello\nACTION: Bash ls\n' > "$TEST_HOME/want.txt"
+  diff "$TEST_HOME/want.txt" "$TEST_HOME/py.txt"
+  if command -v jq >/dev/null; then
+    bash -c "TEMPLATES='$VELLUM_REPO/templates'; source '$VELLUM_REPO/lib/common.sh'; source '$VELLUM_REPO/lib/journal.sh'; condense_transcript '$bad' '$TEST_HOME/jq.txt'"
+    diff "$TEST_HOME/want.txt" "$TEST_HOME/jq.txt"
+  fi
+}

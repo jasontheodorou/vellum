@@ -2,10 +2,15 @@ import {
   ActionIcon, Anchor, Code, Container, CopyButton, Group, SimpleGrid, ThemeIcon, Tooltip,
 } from '@mantine/core'
 import { IconBrandGithub, IconCheck, IconCopy, IconEye, IconNotebook, IconSquares } from '@tabler/icons-react'
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { Windows } from './Windows'
 import { BrandPromise } from './BrandPromise'
-import { PageSpacing } from './spacing/PageSpacing'
+
+// The spacing overlay is a design aid for development only. Loaded lazily behind the DEV flag,
+// so its code and CSS are left out of the production build entirely.
+const PageSpacing = import.meta.env.DEV
+  ? lazy(() => import('./spacing/PageSpacing').then((m) => ({ default: m.PageSpacing })))
+  : null
 
 const INSTALL = 'curl -fsSL https://raw.githubusercontent.com/jasontheodorou/vellum/main/install.sh | bash'
 
@@ -31,7 +36,7 @@ export function App() {
   // The windows start typing once the brand promise is written
   const [ready, setReady] = useState(false)
   return (
-    <Container size="lg" className="page">
+    <Container component="main" size="lg" className="page">
       <header>
         <h1 className="wordmark">Vellum</h1>
         <BrandPromise onDone={() => setReady(true)} />
@@ -43,33 +48,33 @@ export function App() {
         {FEATURES.map((f) => (
           <div key={f.title} className="feature">
             <ThemeIcon variant="light" color="cobalt" size={48} radius="md">
-              <f.icon size={26} stroke={1.6} />
+              <f.icon size={26} stroke={1.6} aria-hidden="true" />
             </ThemeIcon>
-            <h3>{f.title}</h3>
+            <h2>{f.title}</h2>
             <p>{f.text}</p>
           </div>
         ))}
       </SimpleGrid>
 
       <div className="install">
-        <h3>Install on a Mac with Claude Code</h3>
+        <h2>Install on a Mac with Claude Code</h2>
         <Group className="install__box" wrap="nowrap" gap="sm">
           <Code className="install__code">{INSTALL}</Code>
           <CopyButton value={INSTALL} timeout={2000}>
             {({ copied, copy }) => (
               <Tooltip label={copied ? 'Copied' : 'Copy'} withArrow position="top">
                 <ActionIcon variant="default" size="lg" onClick={copy} aria-label="Copy the install command">
-                  {copied ? <IconCheck size={18} /> : <IconCopy size={18} />}
+                  {copied ? <IconCheck size={18} aria-hidden="true" /> : <IconCopy size={18} aria-hidden="true" />}
                 </ActionIcon>
               </Tooltip>
             )}
           </CopyButton>
         </Group>
         <Anchor href="https://github.com/jasontheodorou/vellum" c="dark" className="github">
-          <IconBrandGithub size={18} /> Vellum on GitHub
+          <IconBrandGithub size={18} aria-hidden="true" /> Vellum on GitHub
         </Anchor>
       </div>
-      <PageSpacing />
+      {PageSpacing && <Suspense fallback={null}><PageSpacing /></Suspense>}
     </Container>
   )
 }

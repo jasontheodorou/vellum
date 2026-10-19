@@ -4,7 +4,7 @@
 
 # Shared helpers, settings and per-project state.
 
-# Set while a background helper runs, so its own session does not start another.
+# Set while the curator runs, so its own session does not start another.
 # CLAUDE_JOURNAL_HOOK is the name the pre-plugin version used.
 is_helper_session() {
   [ "${VELLUM_SUBAGENT:-0}" = "1" ] || [ "${CLAUDE_JOURNAL_HOOK:-0}" = "1" ]
@@ -41,14 +41,48 @@ json_field() {
 # The project root: the git top level if there is one, otherwise the directory.
 # Always the resolved path (pwd -P), the form Claude Code reports, so the same
 # folder is never mistaken for two (on macOS, /tmp is really /private/tmp).
+#
+# Two kinds of repository are not projects:
+# - one in the home folder (some people keep their settings files in git) or
+#   in the projects folder. Below those, the folder itself is the project, or
+#   the first folder below the projects folder.
+# - a git worktree, which is a second working copy of a project. It belongs to
+#   the main copy, so it uses the main copy's journal.
 project_root() {
-  local dir="${1:-$PWD}" up
-  if command -v git >/dev/null 2>&1; then
-    up=$(cd "$dir" 2>/dev/null && git rev-parse --show-cdup 2>/dev/null) && {
-      (cd "$dir/$up" 2>/dev/null && pwd -P) && return 0
-    }
+  local dir="${1:-$PWD}" top common pdir rest
+  dir="$( (cd "$dir" 2>/dev/null && pwd -P) || echo "$dir")"
+  [ -d "$dir" ] || { echo "$dir"; return 0; }
+  command -v git >/dev/null 2>&1 || { echo "$dir"; return 0; }
+  top="$(cd "$dir" && git rev-parse --show-toplevel 2>/dev/null)" || top=""
+  [ -n "$top" ] || { echo "$dir"; return 0; }
+  top="$( (cd "$top" 2>/dev/null && pwd -P) || echo "$top")"
+
+  # A worktree's shared .git folder is in the main copy. git prints it relative
+  # to the current folder, so resolve it from there (older git has no
+  # --path-format option).
+  common="$(cd "$dir" && git rev-parse --git-common-dir 2>/dev/null)" || common=""
+  if [ -n "$common" ]; then
+    common="$(cd "$dir" && cd "$common" 2>/dev/null && pwd -P)" || common=""
+    if [ -n "$common" ] && [ "$(basename "$common")" = ".git" ] && [ "$(dirname "$common")" != "$top" ]; then
+      top="$(dirname "$common")"
+    fi
   fi
-  (cd "$dir" 2>/dev/null && pwd -P) || echo "$dir"
+
+  pdir="$(projects_dir 2>/dev/null)" || pdir=""
+  if [ "$top" = "$HOME_P" ] || { [ -n "$pdir" ] && [ "$top" = "$pdir" ]; }; then
+    if [ -n "$pdir" ] && [ "$dir" != "$pdir" ]; then
+      case "$dir/" in
+        "$pdir"/*)
+          rest="${dir#"$pdir"/}"
+          echo "$pdir/${rest%%/*}"
+          return 0
+          ;;
+      esac
+    fi
+    echo "$dir"
+    return 0
+  fi
+  echo "$top"
 }
 
 # Print a file's body without its YAML frontmatter.
@@ -145,9 +179,15 @@ cmd_config() {
       ;;
     projects-dir)
       [ -z "$value" ] && { config_get projects-dir "$HOME/projects"; return 0; }
+      # A ~ inside quotes reaches here as it is, so expand it by hand.
+      case "$value" in
+        "~") value="$HOME" ;;
+        "~/"*) value="$HOME/${value#"~/"}" ;;
+      esac
       mkdir -p "$value" || die "could not create $value"
-      config_set projects-dir "$(cd "$value" && pwd)"
-      echo "New projects will go in $(cd "$value" && pwd)."
+      value="$(cd "$value" && pwd)" || die "could not open $value"
+      config_set projects-dir "$value"
+      echo "New projects will go in $value."
       ;;
     *) die "unknown setting '$key' (settings: background, model, projects-dir)" ;;
   esac
@@ -164,8 +204,13 @@ migrate_home() {
   local item to
   [ -d "$OLD_HOME" ] && [ ! -e "$VELLUM_HOME/.moved-from-scribe" ] || return 0
   mkdir -p "$VELLUM_HOME" 2>/dev/null || return 0
-  # Only one process moves things, even when several start at once.
-  mkdir "$VELLUM_HOME/.moving" 2>/dev/null || return 0
+  # Only one process moves things, even when several start at once. A marker
+  # older than a minute was left by a move that was interrupted, so try again.
+  if ! mkdir "$VELLUM_HOME/.moving" 2>/dev/null; then
+    [ $(( $(date +%s) - $(stat -f %m "$VELLUM_HOME/.moving" 2>/dev/null || date +%s) )) -gt 60 ] || return 0
+    rmdir "$VELLUM_HOME/.moving" 2>/dev/null || return 0
+    mkdir "$VELLUM_HOME/.moving" 2>/dev/null || return 0
+  fi
   for item in library sessions notices recall retired .cache config declined projects.tsv scribe.log; do
     [ -e "$OLD_HOME/$item" ] || continue
     to="$VELLUM_HOME/$item"
@@ -258,7 +303,8 @@ has_legacy_journal() {
 
 # The old curl installer wired its hooks into ~/.claude/settings.json.
 has_legacy_install() {
-  [ -f "$HOME/.claude/settings.json" ] && grep -q '\.scribe/hooks/' "$HOME/.claude/settings.json"
+  local settings="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/settings.json"
+  [ -f "$settings" ] && grep -q '\.scribe/hooks/' "$settings"
 }
 
 require_journal() {

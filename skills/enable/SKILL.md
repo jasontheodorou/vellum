@@ -1,9 +1,9 @@
 ---
 name: enable
-description: Turn on Vellum journaling for this project.
+description: Add this folder to your Vellum projects and turn on its journal.
 disable-model-invocation: true
 ---
 
-Run `"${CLAUDE_PLUGIN_ROOT}/bin/vellum" init` from the project root and tell the person what it printed, in plain English.
+Run `"${CLAUDE_PLUGIN_ROOT}/bin/vellum" adopt --session ${CLAUDE_SESSION_ID}` from the project root. It adds the folder to the project list and starts a journal, or uses the one already there. Tell the person what it printed, in plain English.
 
-From now on in this session, keep the journal in `.vellum/` as the files in `.vellum/README.md` describe: a logbook entry for today, decisions, lessons, experiments and a glossary, each with YAML frontmatter. Never copy passwords, API keys, tokens or personal data into it.
+Then run `"${CLAUDE_PLUGIN_ROOT}/bin/vellum" open "NAME"`, with the project name adopt printed, and follow the journal instructions it prints for the rest of this session. Never copy passwords, API keys, tokens or personal data into the journal.

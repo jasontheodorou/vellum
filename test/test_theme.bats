@@ -5,6 +5,7 @@ load helpers
 
 setup() {
   setup_isolated_env
+  export CLAUDE_CONFIG_DIR="$HOME/.claude"
   TERMINAL="$TEST_HOME/terminal"
   mkdir -p "$TERMINAL"
   echo "Man Page" > "$TERMINAL/default"
@@ -113,4 +114,39 @@ teardown() { teardown_isolated_env; }
 @test "session start says nothing about the theme if it was never installed" {
   run "$VELLUM_BIN" hook session-start < <(hook_input SessionStart /dev/null)
   refute grep -q "Vellum Terminal theme" <<<"$output"
+}
+
+@test "theme undo puts Claude Code's theme back from the installer's backup" {
+  mkdir -p "$HOME/.claude"
+  echo '{"theme": "dark"}' > "$HOME/.claude/settings.json.before-vellum"
+  echo "{\"theme\": \"light-ansi\", \"model\": \"opus\", \"statusLine\": {\"type\": \"command\", \"command\": \"$HOME/.vellum/bin/vellum statusline\"}}" > "$HOME/.claude/settings.json"
+  "$VELLUM_BIN" theme
+  run "$VELLUM_BIN" theme undo
+  [ "$status" -eq 0 ]
+  /usr/bin/python3 -c 'import json, sys; d = json.load(open(sys.argv[1])); assert d["theme"] == "dark" and d["model"] == "opus" and "statusLine" in d' "$HOME/.claude/settings.json"
+  grep -q 'theme is back to "dark"' <<<"$output"
+  grep -q 'status line is still on' <<<"$output"
+  grep -qx "Man Page" "$TERMINAL/default"
+}
+
+@test "theme undo removes Claude Code's theme when there was none before" {
+  mkdir -p "$HOME/.claude"
+  echo '{}' > "$HOME/.claude/settings.json.before-vellum"
+  echo '{"theme": "light-ansi"}' > "$HOME/.claude/settings.json"
+  run "$VELLUM_BIN" theme undo
+  [ "$status" -eq 0 ]
+  refute grep -q theme "$HOME/.claude/settings.json"
+  grep -q "no earlier Terminal profile" <<<"$output"
+  grep -q "back to its default" <<<"$output"
+}
+
+@test "theme undo leaves a Claude Code theme the person changed since" {
+  mkdir -p "$HOME/.claude"
+  echo '{"theme": "dark"}' > "$HOME/.claude/settings.json.before-vellum"
+  echo '{"theme": "light"}' > "$HOME/.claude/settings.json"
+  "$VELLUM_BIN" theme
+  run "$VELLUM_BIN" theme undo
+  [ "$status" -eq 0 ]
+  grep -q '"theme": "light"' "$HOME/.claude/settings.json"
+  grep -q "left alone" <<<"$output"
 }

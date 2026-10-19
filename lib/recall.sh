@@ -7,7 +7,8 @@
 # Claude Code saves each conversation as JSON lines under ~/.claude/projects/.
 # Each one is condensed once (about a hundredth of the size) into
 # ~/.vellum/recall/, with a short header, and refreshed only when it changes.
-# Background helper runs (the curator and older journal helpers) are skipped.
+# Curator runs (and older journal helpers) are skipped, and so are
+# conversations from projects where journaling is paused or was declined.
 
 transcripts_root() {
   echo "${VELLUM_TRANSCRIPTS:-${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects}"
@@ -55,7 +56,7 @@ PY
     }'
 }
 
-# A conversation that a background helper had with Claude, not a person.
+# A conversation that the curator had with Claude, not a person.
 is_helper_text() {
   head -1 "$1" | grep -qE '^PERSON: (You are the (journal safety net|curator)|You keep the journal|Read the project journal in )'
 }
@@ -66,6 +67,9 @@ recall_cache_one() {
   id="$(basename "$transcript" .jsonl)"
   cache="$(recall_dir)/$id.txt"
   [ -f "$cache" ] && [ ! "$transcript" -nt "$cache" ] && return 0
+  # Paused or declined: not copied, and no skip record either, so it is
+  # picked up if journaling is turned back on.
+  transcript_is_private "$transcript" && return 0
   mkdir -p "$(recall_dir)"
   body="$(recall_dir)/.$id.body"
   if ! condense_transcript "$transcript" "$body" || is_helper_text "$body"; then
@@ -83,23 +87,74 @@ recall_cache_one() {
   rm -f "$body"
 }
 
-# Bring the recall folder up to date with every saved conversation.
+# A conversation that started in a project where journaling is paused, or
+# where the person said no to Vellum. Recall does not copy these. The folder
+# it started in, and each folder above it, is checked for the pause marker
+# and the "no" markers, so no git calls are needed.
+transcript_is_private() {
+  local cwd dir
+  cwd="$(grep -m1 -oE '"cwd"[[:space:]]*:[[:space:]]*"[^"]*"' "$1" 2>/dev/null | head -1 | sed -E 's/^"cwd"[[:space:]]*:[[:space:]]*"//; s/"$//')"
+  [ -n "$cwd" ] || return 1
+  dir="$cwd"
+  while [ -n "$dir" ] && [ "$dir" != "/" ] && [ "$dir" != "$HOME_P" ] && [ "$dir" != "$HOME" ]; do
+    [ -f "$dir/.vellum/.paused" ] && return 0
+    [ -f "$dir/design-journal/.paused" ] && [ ! -d "$dir/.vellum" ] && return 0
+    { [ -f "$dir/.vellum-declined" ] || [ -f "$dir/.scribe-declined" ]; } && return 0
+    [ -f "$DECLINED" ] && grep -qxF "$dir" "$DECLINED" && return 0
+    dir="${dir%/*}"
+  done
+  return 1
+}
+
+# Bring the recall folder up to date with every saved conversation. Stops
+# after about a minute (VELLUM_RECALL_BUDGET seconds), so a first search over
+# many conversations never runs past a tool's time limit; the next search
+# carries on where this one stopped.
 recall_update() {
-  local root f todo=0
+  local root f todo="" count=0 done_n=0 left=0 budget start cache
   root="$(transcripts_root)"
   [ -d "$root" ] || return 0
+  budget="${VELLUM_RECALL_BUDGET:-60}"
   for f in "$root"/*/*.jsonl; do
     [ -f "$f" ] || continue
-    if [ ! -f "$(recall_dir)/$(basename "$f" .jsonl).txt" ] || [ "$f" -nt "$(recall_dir)/$(basename "$f" .jsonl).txt" ]; then
-      todo=$((todo + 1))
+    cache="$(recall_dir)/$(basename "$f" .jsonl).txt"
+    if [ ! -f "$cache" ] || [ "$f" -nt "$cache" ]; then
+      transcript_is_private "$f" && continue
+      todo="$todo$f
+"
+      count=$((count + 1))
     fi
   done
-  [ $todo -gt 20 ] && echo "Reading $todo past conversations for the first time. This can take a few minutes, once." >&2
-  for f in "$root"/*/*.jsonl; do
-    [ -f "$f" ] || continue
+  [ $count -gt 0 ] || return 0
+  [ $count -gt 20 ] && echo "Reading $count past conversations for the first time. This can take a few minutes, once." >&2
+  start=$SECONDS
+  while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    if [ $((SECONDS - start)) -ge "$budget" ]; then
+      left=$((left + 1))
+      continue
+    fi
     recall_cache_one "$f"
-  done
+    done_n=$((done_n + 1))
+  done <<EOF
+$todo
+EOF
+  if [ $left -gt 0 ]; then
+    echo "Read $done_n past conversations; $left are still to read. Results below cover only those read so far. Run the same search again to carry on." >&2
+  fi
   return 0
+}
+
+# The pattern for one search word, escaped. A word that starts with a letter
+# or digit must start a word in the text, so "drain" finds "drains" but
+# "beds" does not find "embeds". A word that starts with punctuation, such as
+# ".env" or "$5", is matched anywhere, because \b never comes before
+# punctuation that follows a space.
+word_pattern() {
+  case "$1" in
+    [A-Za-z0-9]*) printf '\\b%s' "$(regex_escape "$1")" ;;
+    *) regex_escape "$1" ;;
+  esac
 }
 
 # Escape a word for use in an extended regular expression.
@@ -142,7 +197,7 @@ cmd_recall() {
   set +f
   # Match the start of words, so "drain" finds "drains" and "drainage" but
   # "beds" does not find "embeds".
-  for w in ${words[@]+"${words[@]}"}; do match+=(-e "\\b$(regex_escape "$w")"); done
+  for w in ${words[@]+"${words[@]}"}; do match+=(-e "$(word_pattern "$w")"); done
 
   recall_update
 
@@ -163,7 +218,7 @@ cmd_recall() {
     # Every word must appear somewhere in the conversation.
     ok=1
     for w in "${words[@]}"; do
-      grep -qiE -- "\\b$(regex_escape "$w")" "$f" || { ok=0; break; }
+      grep -qiE -- "$(word_pattern "$w")" "$f" || { ok=0; break; }
     done
     [ $ok -eq 1 ] || continue
     # Lines with any of the words, plus a bonus for the exact phrase.

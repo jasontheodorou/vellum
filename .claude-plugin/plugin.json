@@ -9,6 +9,6 @@
   },
   "homepage": "https://github.com/jasontheodorou/vellum",
   "repository": "https://github.com/jasontheodorou/vellum",
-  "license": "MIT",
+  "license": "MIT AND OFL-1.1",
   "keywords": ["projects", "journal", "memory", "decisions", "history", "handoff", "plain-english"]
 }

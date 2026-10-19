@@ -130,7 +130,7 @@ reg() { cat "$HOME/.vellum/projects.tsv"; }
   [ "$status" -eq 0 ]
   [ -f "$HOME/Desktop/garden_archive.md" ]
   [ -d "$P/garden" ]
-  reg | grep -q "^garden	.*	closed	.*	$(date '+%Y-%m-%d')$"
+  reg | grep -q "^garden	.*	closed	.*	$(date '+%Y-%m-%d')	"
   run "$VELLUM_BIN" reopen garden
   reg | grep -q "^garden	.*	active	"
 }

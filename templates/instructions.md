@@ -1,6 +1,6 @@
 ## The journal for this project is in `{{J}}/`
 
-If `{{J}}/.paused` exists, write nothing to it. Otherwise, as you work, note things while the detail is fresh. A curator organises everything when the session ends.
+If `{{J}}/.paused` exists, write nothing to it. Otherwise, as you work, note things while the detail is fresh. {{CURATOR}}
 
 - `{{J}}/logbook/YYYY-MM-DD.md`: what was asked, what you did and why, what went wrong, the outcome. Quote the person's reactions.
 - `{{J}}/decisions/NNN-slug.md` for a real decision (Context, Options considered, Decision, Why, Consequences). Use the next free number.
@@ -9,4 +9,4 @@ If `{{J}}/.paused` exists, write nothing to it. Otherwise, as you work, note thi
 
 Start files with YAML frontmatter (`id`, `type`, `date`, `summary`, `tags`, `status`, `related`). Never record passwords, keys or personal data. Answer questions about the project from the overview and index below, opening entries as needed. Check `{{J}}/preferences.md` before proposing a design or approach.
 
-Journal commands: pause / resume journaling: `vellum pause` / `vellum resume`. tidy the journal: `vellum curate`. undo the journal update: `vellum undo`. archive / write it up: `vellum archive`. bring in project X's lessons: `vellum link X` (`unlink` to undo). turn off journaling here (confirm first, it deletes the journal): `vellum off --yes`.
+Journal commands (`vellum` means `{{VELLUM_BIN}}`): pause / resume journaling: `vellum pause` / `vellum resume`. tidy the journal: `vellum curate`. undo the journal update: `vellum undo`. archive / write it up: `vellum archive`. bring in project X's lessons: `vellum link X` (`unlink` to undo). turn off journaling here (confirm first, it deletes the journal): `vellum off --yes`.

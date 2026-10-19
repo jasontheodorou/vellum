@@ -69,3 +69,20 @@ teardown() { teardown_isolated_env; }
   run "$VELLUM_BIN" hook session-start < <(hook_input SessionStart /dev/null)
   refute grep -q "ask once whether to add it" <<<"$output"
 }
+
+@test "tries the move again when an earlier one was cut short" {
+  mkdir -p "$HOME/.scribe/library" "$HOME/.vellum/.moving"
+  echo "keep me" > "$HOME/.scribe/library/archive.md"
+  touch -t 202001010000 "$HOME/.vellum/.moving"
+  "$VELLUM_BIN" version
+  grep -q "keep me" "$HOME/.vellum/library/archive.md"
+  [ -f "$HOME/.vellum/.moved-from-scribe" ]
+}
+
+@test "waits while another move is still running" {
+  mkdir -p "$HOME/.scribe/library" "$HOME/.vellum/.moving"
+  echo "keep me" > "$HOME/.scribe/library/archive.md"
+  "$VELLUM_BIN" version
+  [ -f "$HOME/.scribe/library/archive.md" ]
+  [ ! -f "$HOME/.vellum/.moved-from-scribe" ]
+}

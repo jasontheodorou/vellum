@@ -7,8 +7,18 @@
 
 set -u
 
-# Where this script and the plugin live.
-VELLUM_BIN_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+# Where this script and the plugin live. Follow any symbolic links to this
+# script first; older macOS readlink has no -f option, so follow them one by one.
+_vellum_src="${BASH_SOURCE[0]}"
+while [ -L "$_vellum_src" ]; do
+  _vellum_link="$(readlink "$_vellum_src")"
+  case "$_vellum_link" in
+    /*) _vellum_src="$_vellum_link" ;;
+    *) _vellum_src="$(dirname "$_vellum_src")/$_vellum_link" ;;
+  esac
+done
+VELLUM_BIN_PATH="$(cd "$(dirname "$_vellum_src")" && pwd)/$(basename "$_vellum_src")"
+unset _vellum_src _vellum_link
 PLUGIN_ROOT="$(cd "$(dirname "$VELLUM_BIN_PATH")/.." && pwd)"
 TEMPLATES="$PLUGIN_ROOT/templates"
 
@@ -57,33 +67,39 @@ Projects
   vellum open NAME           Open a project and print its journal
   vellum list [--all]        List projects, most recent first
   vellum rename OLD NEW      Rename a project and its folder
-  vellum close | reopen NAME Close a project (with a final archive) or reopen it
+  vellum close NAME [--no-archive]  Close a project, with a final archive
+  vellum reopen NAME         Make a closed project active again
   vellum adopt [FOLDER]      Add an existing folder to the project list
   vellum import-kit          Add every project from the earlier project kit
   vellum running | stop NAME Which projects are running; stop one
   vellum search WORDS        Search every project's journal
   vellum recall WORDS        Search every past Claude Code conversation
+  vellum recall --show ID    Show one past conversation
   vellum digest [DAYS]       What happened across projects lately
   vellum preship             Checks before pushing code
   vellum publish [--public]  Create a GitHub repository and push
 
 Journal
-  vellum init [--decline]    Turn journaling on here (or say no, once)
+  vellum init [--decline]    Turn journaling on here (or say no, so Vellum stops asking)
   vellum status              Is journaling on, and what is in the journal
   vellum pause | resume      Stop and restart journal writes
-  vellum curate              Tidy and reorganise the journal now
+  vellum curate              Tidy the journal now
   vellum undo                Undo the curator's last update to the journal
+  vellum undo --earlier      Undo a curator update from before the last one
   vellum archive             Save a summary of the project to your desktop
   vellum library             List archived projects
-  vellum link | unlink NAME  Load (or stop loading) an archived project's lessons
+  vellum link | unlink NAME  Load (or stop loading) another project's overview and lessons
   vellum off [--yes]         Turn journaling off here and delete the journal
-  vellum config [KEY VALUE]  Settings: background on|off, model NAME|default
+  vellum off --yes --delete-tracked  Delete the journal even when git tracks it
+  vellum config [KEY VALUE]  Settings: background on|off, model NAME|default,
+                             projects-dir FOLDER
   vellum migrate             Move a journal from the old journal/ folder
   vellum remove-old-install  Remove the old curl-installed version of Scribe
 
 Terminal
   vellum theme               Install Paper Mono and make Vellum Terminal's default
   vellum theme undo          Go back to the previous default profile
+  vellum theme skip          Stop offering this theme update
   vellum welcome             Show the welcome screen
   vellum doctor              Check that everything is set up
   vellum version             Print the version
@@ -142,4 +158,10 @@ main() {
 }
 
 migrate_home
+# Older project lists get their status line shapes here. The status line and
+# the list only read the list, and hooks have little time, so they skip this.
+case "${1:-}" in
+  statusline|list|projects|hook|"") ;;
+  *) reg_migrate 2>/dev/null || true ;;
+esac
 main "$@"

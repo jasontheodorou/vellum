@@ -122,7 +122,7 @@ build_index() {
 condense_transcript() {
   local transcript="$1" out="$2"
   if command -v jq >/dev/null 2>&1; then
-    jq -r -f "$TEMPLATES/condense.jq" "$transcript" >"$out" 2>/dev/null && [ -s "$out" ] && return 0
+    jq -R -r -f "$TEMPLATES/condense.jq" "$transcript" >"$out" 2>/dev/null && [ -s "$out" ] && return 0
   fi
   if command -v python3 >/dev/null 2>&1; then
     python3 - "$transcript" >"$out" 2>/dev/null <<'PY' && [ -s "$out" ] && return 0
@@ -131,35 +131,54 @@ import json, sys
 def clip(text, n):
     return text if len(text) <= n else text[:n] + " [...]"
 
+def text_of(value):
+    if isinstance(value, str):
+        return value
+    if value is None:
+        return ""
+    return json.dumps(value, separators=(",", ":"))
+
+# Skip anything that is not the expected shape, the same as condense.jq.
 for line in open(sys.argv[1], encoding="utf-8", errors="replace"):
     try:
         rec = json.loads(line)
     except ValueError:
         continue
-    who = rec.get("type")
-    if who not in ("user", "assistant") or rec.get("isMeta"):
+    if not isinstance(rec, dict):
         continue
-    content = (rec.get("message") or {}).get("content")
+    who = rec.get("type")
+    if who not in ("user", "assistant") or rec.get("isMeta") not in (None, False):
+        continue
+    message = rec.get("message")
+    content = message.get("content") if isinstance(message, dict) else None
     if isinstance(content, str):
-        content = [{"type": "text", "text": content}]
-    for block in content or []:
+        content = [content]
+    elif not isinstance(content, list):
+        content = []
+    for block in content:
+        if isinstance(block, str):
+            block = {"type": "text", "text": block}
+        elif not isinstance(block, dict):
+            continue
         kind = block.get("type")
-        if kind == "text" and block.get("text", "").strip():
+        text = block.get("text")
+        if kind == "text" and isinstance(text, str) and text.strip():
             label = "PERSON: " if who == "user" else "CLAUDE: "
-            print(label + clip(block["text"], 4000))
+            print(label + clip(text, 4000))
         elif kind == "tool_use":
-            inp = block.get("input") or {}
+            inp = block.get("input")
             detail = ""
-            for key in ("file_path", "command", "pattern", "description", "url"):
-                if inp.get(key):
-                    detail = str(inp[key])
-                    break
-            print("ACTION: " + block.get("name", "") + " " + clip(detail.replace("\n", " "), 200))
-        elif kind == "tool_result" and block.get("is_error"):
+            if isinstance(inp, dict):
+                for key in ("file_path", "command", "pattern", "description", "url"):
+                    if inp.get(key) not in (None, False):
+                        detail = text_of(inp[key])
+                        break
+            print("ACTION: " + text_of(block.get("name")) + " " + clip(detail.replace("\n", " "), 200))
+        elif kind == "tool_result" and block.get("is_error") not in (None, False):
             body = block.get("content")
             if isinstance(body, list):
-                body = " ".join(b.get("text", "") for b in body if isinstance(b, dict))
-            print("FAILED: " + clip(str(body or "").replace("\n", " "), 300))
+                body = " ".join(text_of(b.get("text") or "") if isinstance(b, dict) else "" for b in body)
+            print("FAILED: " + clip(text_of(body).replace("\n", " "), 300))
 PY
   fi
   rm -f "$out"
@@ -167,20 +186,38 @@ PY
 }
 
 # Write the curator's instructions to a file. $1 is the session note.
+# Every value goes in by environment and is swapped in as plain text, so
+# characters such as & and \ in a project name come through unchanged.
 write_curator_prompt() {
   local note="$1" out="$2"
-  # The note can span lines, which awk -v cannot take, so it goes in by environment.
-  VELLUM_NOTE="$note" awk -v project="$(basename "$ROOT")" -v j="$JOURNAL_NAME" -v lessons="$LESSONS" -v today="$(date '+%Y-%m-%d')" '
-    { gsub(/\{\{PROJECT\}\}/, project); gsub(/\{\{J\}\}/, j); gsub(/\{\{LESSONS\}\}/, lessons); gsub(/\{\{TODAY\}\}/, today)
-      if ($0 == "{{SESSION_NOTE}}") { print ENVIRON["VELLUM_NOTE"]; next }
-      print }' "$TEMPLATES/curator.md" >"$out"
+  VELLUM_NOTE="$note" VELLUM_PROJECT="$(basename "$ROOT")" VELLUM_J="$JOURNAL_NAME" \
+  VELLUM_LESSONS="$LESSONS" VELLUM_TODAY="$(date '+%Y-%m-%d')" awk '
+    function swap(s, from, to,   out, i) {
+      out = ""
+      while ((i = index(s, from)) > 0) {
+        out = out substr(s, 1, i - 1) to
+        s = substr(s, i + length(from))
+      }
+      return out s
+    }
+    $0 == "{{SESSION_NOTE}}" { print ENVIRON["VELLUM_NOTE"]; next }
+    {
+      line = swap($0, "{{PROJECT}}", ENVIRON["VELLUM_PROJECT"])
+      line = swap(line, "{{J}}", ENVIRON["VELLUM_J"])
+      line = swap(line, "{{LESSONS}}", ENVIRON["VELLUM_LESSONS"])
+      line = swap(line, "{{TODAY}}", ENVIRON["VELLUM_TODAY"])
+      print line
+    }' "$TEMPLATES/curator.md" >"$out"
 }
 
 # Run the curator in the project root. It may read the project and edit only
 # inside the journal; it has no shell and no web access. $1 is the prompt file,
 # $2 is an extra Read rule (or empty).
+#
+# Call snapshot_journal first. When the curator stops, this records which files
+# it changed, so `vellum undo` can put back only those (see snapshot_finish).
 run_curator() {
-  local prompt_file="$1" extra_read="${2:-}" allowed
+  local prompt_file="$1" extra_read="${2:-}" allowed result=0
   allowed="Edit(./$JOURNAL_NAME/**)"
   [ -n "$extra_read" ] && allowed="$allowed,$extra_read"
   set_model_args
@@ -189,7 +226,9 @@ run_curator() {
     --permission-mode dontAsk \
     --allowedTools "$allowed" \
     --no-session-persistence \
-    ${MODEL_ARGS[@]+"${MODEL_ARGS[@]}"} <"$prompt_file")
+    ${MODEL_ARGS[@]+"${MODEL_ARGS[@]}"} <"$prompt_file") || result=$?
+  snapshot_finish
+  return $result
 }
 
 # ---------------------------------------------------------------------------
@@ -209,6 +248,9 @@ cmd_init() {
 
   if [ "$ROOT" = "$HOME_P" ]; then
     die "your home folder cannot have a journal. Open Claude in a project folder instead."
+  fi
+  if [ "$ROOT" = "$(projects_dir)" ]; then
+    die "the projects folder itself cannot have a journal. Open Claude in one of the projects inside it instead."
   fi
   if has_legacy_journal "$ROOT"; then
     die "this project uses the old journal/ folder. Run 'vellum migrate' instead."
@@ -233,7 +275,7 @@ cmd_init() {
     echo "The journal is in $JOURNAL_NAME/."
   fi
   if [ "$(config_get background on)" = "on" ]; then
-    echo "After each session a background helper fills in anything missed."
+    echo "After each session the curator, a background run of Claude, fills in anything missed."
     echo "It runs Claude, so it uses some of your plan's allowance. 'vellum config background off' stops it."
   fi
 }
@@ -248,6 +290,13 @@ cmd_resume() {
   require_journal
   rm -f "$JOURNAL/.paused"
   echo "Journaling resumed."
+  # While paused, Claude was told only that journaling was off, so give it the
+  # journal instructions and the journal now. print_project_context lives in
+  # hooks.sh; without it, the next session start brings them instead.
+  if type print_project_context >/dev/null 2>&1; then
+    echo
+    print_project_context "$ROOT"
+  fi
 }
 
 count_md() {
@@ -281,15 +330,30 @@ cmd_status() {
   local latest
   latest=$(ls -1t "$JOURNAL"/logbook/*.md 2>/dev/null | head -1)
   [ -n "$latest" ] && echo "  last entry:      $(basename "$latest" .md)"
-  echo "  background helper: $(config_get background on)"
+  echo "  curator:         $(config_get background on) (tidies the journal after each session)"
 }
 
 cmd_off() {
-  local yes=0
-  [ "${1:-}" = "--yes" ] && yes=1
+  local yes=0 tracked=0 force=0 arg
+  for arg in "$@"; do
+    case "$arg" in
+      --yes) yes=1 ;;
+      --delete-tracked) force=1 ;;
+    esac
+  done
   require_journal
 
+  # A journal committed to git (the project kit's design-journal/) is shared
+  # work: deleting it shows up as deleted files in the next commit.
+  if command -v git >/dev/null 2>&1 && [ -n "$(git -C "$ROOT" ls-files -- "$JOURNAL_NAME" 2>/dev/null | head -1)" ]; then
+    tracked=1
+  fi
+  if [ $tracked -eq 1 ] && [ $yes -eq 1 ] && [ $force -eq 0 ]; then
+    die "the journal in $JOURNAL_NAME/ is tracked by git, so deleting it would delete committed files. Nothing changed. To delete it anyway, run 'vellum off --yes --delete-tracked'."
+  fi
+
   if [ $yes -eq 0 ]; then
+    [ $tracked -eq 1 ] && echo "The journal in $JOURNAL_NAME/ is tracked by git. Deleting it deletes committed files, which your next commit would record."
     printf "This deletes the journal for %s. Continue? (y/N) " "$ROOT"
     local reply
     read -r reply
@@ -411,41 +475,197 @@ EOF
   echo "  library: $lib_out"
 }
 
-# Save the journal as it is now, before the curator changes it. Keeps the ten
-# most recent. Artefacts are left out: the curator does not edit them, and
-# they can be large.
-snapshot_journal() {
-  local dir="$JOURNAL/.state/snapshots" stamp
-  mkdir -p "$dir"
-  stamp="$(date '+%Y-%m-%d-%H%M%S')"
-  (cd "$JOURNAL" && tar -czf "$dir/$stamp.tgz" --exclude './.state' --exclude './artefacts' --exclude './.paused' . 2>/dev/null) || return 0
-  ls -1 "$dir"/*.tgz 2>/dev/null | grep -v -- '-before-undo\.tgz$' | sort -r | tail -n +11 | while IFS= read -r old; do rm -f "$old"; done
+# ---------------------------------------------------------------------------
+# Snapshots, undo and the curator lock
+#
+# The order for any curator run is:
+#   take the lock, snapshot_journal, run_curator, build_index, drop the lock.
+# run_curator calls snapshot_finish itself. The background run in hooks.sh
+# takes it in curate_root (take_project_lock); the commands here use take_curator_lock.
+#
+# .state/snapshots/STAMP.tgz      the journal before a run
+# .state/undo/STAMP.before        a checksum of every file before the run
+# .state/undo/STAMP.changes       the files the run changed, with their
+#                                 checksums afterwards ("-" if it deleted one)
+# .state/undo/pending             the run that has not finished yet
+# .state/undo/undone              the last run was undone; set until the next
+#                                 run changes something
+# ---------------------------------------------------------------------------
+
+# One curator per project at a time, the same lock the background run takes.
+# A lock older than 30 minutes is stale. Released when the command exits.
+take_curator_lock() {
+  local lock="$JOURNAL/.state/lock"
+  mkdir -p "$JOURNAL/.state"
+  if [ -d "$lock" ] && [ -n "$(find "$lock" -maxdepth 0 -mmin -30 2>/dev/null)" ]; then
+    die "the curator is working on this journal right now. Try again in a few minutes."
+  fi
+  rm -rf "${lock:?}"
+  mkdir "$lock" 2>/dev/null || die "the curator is working on this journal right now. Try again in a few minutes."
+  CURATOR_LOCK="$lock"
+  trap 'release_curator_lock' EXIT
+  trap 'exit 1' INT TERM
 }
 
-# Put the journal back as it was before the most recent curator run. The
-# current version is saved first, so an undo can itself be undone by hand.
+release_curator_lock() {
+  if [ -n "${CURATOR_LOCK:-}" ]; then
+    rmdir "$CURATOR_LOCK" 2>/dev/null || true
+  fi
+  CURATOR_LOCK=""
+}
+
+# Every file a curator run could change, one "checksum<TAB>./path" line each,
+# sorted. INDEX.md is left out because it is rebuilt from the rest, and so are
+# artefacts, the pause marker and Vellum's own state.
+journal_manifest() {
+  (cd "$JOURNAL" 2>/dev/null && find . -type f \
+    ! -path './.state/*' ! -path './artefacts/*' ! -path './.paused' \
+    ! -path './INDEX.md' ! -path './.INDEX.tmp' -exec cksum {} + 2>/dev/null) |
+    awk '{ sum = $1 "-" $2; sub(/^[^ ]+ [^ ]+ /, ""); print sum "\t" $0 }' | LC_ALL=C sort -t "$(printf '\t')" -k2
+}
+
+# Turn a snapshot's name, such as 2026-10-16-143005, into "2026-10-16 at 14:30".
+snapshot_when() {
+  printf '%s' "$1" | awk -F- '{printf "%s-%s-%s at %s:%s", $1, $2, $3, substr($4, 1, 2), substr($4, 3, 2)}'
+}
+
+# Throw away a snapshot and its records.
+drop_snapshot() {
+  local stamp="${1:?}"
+  rm -f "$JOURNAL/.state/snapshots/$stamp.tgz" "$JOURNAL/.state/undo/$stamp.before" "$JOURNAL/.state/undo/$stamp.changes"
+}
+
+# Keep the ten most recent snapshots of curator runs, and the three most
+# recent copies saved by undo.
+prune_snapshots() {
+  local dir="$JOURNAL/.state/snapshots" old
+  ls -1 "$dir" 2>/dev/null | grep -- '\.tgz$' | grep -v -- '-before-undo\.tgz$' | sort -r | tail -n +11 |
+    while IFS= read -r old; do drop_snapshot "${old%.tgz}"; done
+  ls -1 "$dir" 2>/dev/null | grep -- '-before-undo\.tgz$' | sort -r | tail -n +4 |
+    while IFS= read -r old; do rm -f "${dir:?}/${old:?}"; done
+}
+
+# Save the journal as it is now, before the curator changes it. Artefacts are
+# left out: the curator does not edit them, and they can be large.
+snapshot_journal() {
+  local dir="$JOURNAL/.state/snapshots" rec="$JOURNAL/.state/undo" stamp old
+  mkdir -p "$dir" "$rec"
+  # A run that never finished (the computer slept, say) cannot be undone safely.
+  old="$(cat "$rec/pending" 2>/dev/null)"
+  [ -n "$old" ] && drop_snapshot "$old"
+  rm -f "$rec/pending"
+  stamp="$(date '+%Y-%m-%d-%H%M%S')"
+  if ! (cd "$JOURNAL" && tar -czf "$dir/$stamp.tgz" --exclude './.state' --exclude './artefacts' --exclude './.paused' . 2>/dev/null); then
+    rm -f "$dir/$stamp.tgz"
+    return 0
+  fi
+  journal_manifest >"$rec/$stamp.before"
+  echo "$stamp" >"$rec/pending"
+  prune_snapshots
+}
+
+# After a curator run: record which files it changed. A run that changed
+# nothing leaves no snapshot behind, so undo never claims to undo nothing.
+# Sets CURATOR_CHANGED to the number of files changed.
+snapshot_finish() {
+  local rec="$JOURNAL/.state/undo" stamp
+  CURATOR_CHANGED=0
+  stamp="$(cat "$rec/pending" 2>/dev/null)"
+  rm -f "$rec/pending"
+  [ -n "$stamp" ] && [ -f "$rec/$stamp.before" ] || return 0
+  journal_manifest | awk -F'\t' '
+    NR == FNR { before[$2] = $1; next }
+    { now[$2] = 1; if (!($2 in before) || before[$2] != $1) print $1 "\t" $2 }
+    END { for (p in before) if (!(p in now)) print "-\t" p }' "$rec/$stamp.before" - >"$rec/$stamp.changes"
+  CURATOR_CHANGED=$(grep -c . "$rec/$stamp.changes")
+  if [ "$CURATOR_CHANGED" -eq 0 ]; then
+    drop_snapshot "$stamp"
+  else
+    rm -f "$rec/undone"
+  fi
+  return 0
+}
+
+# Curator runs that changed something and can be undone, newest first.
+undoable_snapshots() {
+  local rec="$JOURNAL/.state/undo" f
+  ls -1 "$rec" 2>/dev/null | grep -- '\.changes$' | sort -r | while IFS= read -r f; do
+    [ -f "$JOURNAL/.state/snapshots/${f%.changes}.tgz" ] && echo "${f%.changes}"
+  done
+  return 0
+}
+
+# Put back the files the curator's most recent run changed, as they were
+# before it. Notes written since are kept. If any of those same files has
+# changed since the run, nothing is touched and the files are named.
+# The journal as it was is saved first, so an undo can itself be undone by hand.
 cmd_undo() {
+  local earlier=0
+  [ "${1:-}" = "--earlier" ] && earlier=1
   require_journal
-  local dir="$JOURNAL/.state/snapshots" latest when
-  latest="$(ls -1 "$dir"/*.tgz 2>/dev/null | grep -v -- '-before-undo\.tgz$' | sort | tail -1)"
-  [ -n "$latest" ] || die "there is nothing to undo: the curator has not changed this journal yet"
-  (cd "$JOURNAL" && tar -czf "$dir/$(date '+%Y-%m-%d-%H%M%S')-before-undo.tgz" --exclude './.state' --exclude './artefacts' --exclude './.paused' .)
-  # Remove everything the snapshot covers, then unpack it.
-  find "$JOURNAL" -mindepth 1 -maxdepth 1 ! -name '.state' ! -name 'artefacts' ! -name '.paused' -exec rm -rf {} +
-  (cd "$JOURNAL" && tar -xzf "$latest")
-  when="$(basename "$latest" .tgz | awk -F- '{printf "%s-%s-%s at %s:%s", $1, $2, $3, substr($4, 1, 2), substr($4, 3, 2)}')"
-  rm -f "$latest"
+  take_curator_lock
+  local dir="$JOURNAL/.state/snapshots" rec="$JOURNAL/.state/undo" stamp when changed path older n
+  local restore=() remove=()
+  stamp="$(undoable_snapshots | head -1)"
+  [ -n "$stamp" ] || die "there is nothing to undo: the curator has not changed this journal since it was last undone"
+  when="$(snapshot_when "$stamp")"
+  if [ -f "$rec/undone" ] && [ $earlier -eq 0 ]; then
+    die "the curator's last update is already undone. To also undo its earlier update from $when, run 'vellum undo --earlier'."
+  fi
+
+  # Stop if anyone has changed the same files since the curator did.
+  changed="$(journal_manifest | awk -F'\t' '
+    NR == FNR { now[$2] = $1; next }
+    { cur = ($2 in now) ? now[$2] : "-"; if (cur != $1) print $2 }' - "$rec/$stamp.changes")"
+  if [ -n "$changed" ]; then
+    {
+      echo "vellum: nothing was undone. These files have changed since the curator's update on $when, and undoing it would lose those changes:"
+      printf '%s\n' "$changed" | sed "s|^\./|  $JOURNAL_NAME/|"
+      echo "Edit them by hand instead. Earlier versions are in $JOURNAL_NAME/.state/snapshots/."
+    } >&2
+    exit 1
+  fi
+
+  # Files that were there before the run go back; files it added go.
+  while IFS="$(printf '\t')" read -r _ path; do
+    [ -n "$path" ] || continue
+    if awk -F'\t' -v p="$path" '$2 == p {found = 1} END {exit !found}' "$rec/$stamp.before"; then
+      restore+=("$path")
+    else
+      remove+=("$path")
+    fi
+  done <"$rec/$stamp.changes"
+
+  (cd "$JOURNAL" && tar -czf "$dir/$(date '+%Y-%m-%d-%H%M%S')-before-undo.tgz" --exclude './.state' --exclude './artefacts' --exclude './.paused' .) ||
+    die "could not save a copy of the journal first, so nothing was undone"
+  if [ ${#restore[@]} -gt 0 ]; then
+    (cd "$JOURNAL" && tar -xzf "$dir/$stamp.tgz" "${restore[@]}") || die "could not unpack the snapshot from $when"
+  fi
+  for path in ${remove[@]+"${remove[@]}"}; do
+    rm -f "$JOURNAL/${path:?}"
+  done
+  n=$(( ${#restore[@]} + ${#remove[@]} ))
+  drop_snapshot "$stamp"
+  : >"$rec/undone"
+  prune_snapshots
   build_index "$JOURNAL"
+  # The "Journal updated" message for this project no longer applies.
+  rm -f "$VELLUM_HOME/notices/$(__sanitize "$ROOT")"
   # Without this, the curator would run when this session ends and could redo
   # the very update that was just undone.
   : >"$JOURNAL/.state/skip-next"
-  echo "The journal is back as it was on $when, before the curator's last update."
+  release_curator_lock
+  echo "The journal is back as it was on $when, before the curator's last update. $n file$( [ "$n" -ne 1 ] && echo s) put back; anything written since was kept."
   echo "The version you just replaced is saved in $JOURNAL_NAME/.state/snapshots/ if you need it."
+  older="$(undoable_snapshots | head -1)"
+  [ -n "$older" ] && echo "An earlier update from $(snapshot_when "$older") can also be undone with 'vellum undo --earlier'."
+  return 0
 }
 
 cmd_curate() {
   require_journal
   command -v claude >/dev/null 2>&1 || die "Claude Code is not on PATH, so the curator cannot run"
+  take_curator_lock
   local prompt_file
   snapshot_journal
   prompt_file="$(mktemp)"
@@ -453,10 +673,17 @@ cmd_curate() {
   echo "Curating the journal. This can take a minute or two."
   if ! run_curator "$prompt_file" ""; then
     rm -f "$prompt_file"
+    build_index "$JOURNAL"
     die "the curator did not finish"
   fi
   rm -f "$prompt_file"
   build_index "$JOURNAL"
+  release_curator_lock
+  if [ "${CURATOR_CHANGED:-0}" -gt 0 ]; then
+    echo "The curator updated $CURATOR_CHANGED file$( [ "$CURATOR_CHANGED" -ne 1 ] && echo s). Say \"undo the journal update\" to reverse it."
+  else
+    echo "The curator made no changes."
+  fi
 }
 
 cmd_index() {
@@ -481,6 +708,9 @@ cmd_link() {
     [ "$entry" != "project:" ] && [ -n "$entry" ] || die "'$name' is not on the project list or in the library at $LIBRARY."
   fi
   require_journal
+  if [ "$entry" = "project:$(reg_name_for_path "$ROOT")" ]; then
+    die "this is the project '${entry#project:}' itself, so there is nothing to link."
+  fi
   imports="$JOURNAL/.imports"
   if [ ! -f "$imports" ] || ! grep -qxF "$entry" "$imports"; then
     echo "$entry" >>"$imports"
@@ -488,18 +718,38 @@ cmd_link() {
   echo "Linked ${entry#project:}. Its overview and lessons will load at the start of every session here."
 }
 
+# Stop loading a linked project. Finds it the same way link does: the exact
+# name, then the project list (which accepts part of a name), then part of a
+# name among the links themselves.
 cmd_unlink() {
-  local name="${1:-}" safe imports
+  local name="${1:-}" safe imports entry="" resolved matches
   [ -n "$name" ] || { echo "Usage: vellum unlink <project-name>" >&2; return 2; }
   safe="$(__sanitize "$name")"
   require_journal
   imports="$JOURNAL/.imports"
-  if [ -f "$imports" ]; then
-    grep -vxF -e "$safe" -e "project:$name" "$imports" >"$imports.tmp" || true
-    mv "$imports.tmp" "$imports"
-    [ -s "$imports" ] || rm -f "$imports"
+  [ -s "$imports" ] || die "nothing is linked to this project."
+  if grep -qxF "project:$name" "$imports"; then
+    entry="project:$name"
+  elif grep -qxF "$safe" "$imports"; then
+    entry="$safe"
+  elif resolved="$(resolve_project "$name" 2>/dev/null)" && grep -qxF "project:$resolved" "$imports"; then
+    entry="project:$resolved"
+  else
+    matches="$(awk -v q="$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')" '
+      { n = $0; sub(/^project:/, "", n); if (index(tolower(n), q)) print }' "$imports")"
+    [ "$(printf '%s' "$matches" | grep -c .)" -eq 1 ] && entry="$matches"
   fi
-  echo "Unlinked $safe."
+  if [ -z "$entry" ]; then
+    {
+      echo "vellum: nothing is linked under the name '$name'. Linked here:"
+      sed 's/^project://; s/^/  /' "$imports"
+    } >&2
+    exit 1
+  fi
+  grep -vxF "$entry" "$imports" >"$imports.tmp" || true
+  mv "$imports.tmp" "$imports"
+  [ -s "$imports" ] || rm -f "$imports"
+  echo "Unlinked ${entry#project:}."
 }
 
 cmd_library() {
@@ -544,7 +794,8 @@ cmd_migrate() {
 # Undo what the old curl installer did to Claude Code and the shell.
 # Archived projects in ~/.vellum/library are kept.
 cmd_remove_old_install() {
-  local settings="$HOME/.claude/settings.json" f rc
+  local claude_dir="${CLAUDE_CONFIG_DIR:-$HOME/.claude}" f rc tmp failed=0
+  local settings="$claude_dir/settings.json"
   if [ -f "$settings" ] && grep -q '\.scribe/hooks/' "$settings"; then
     local updated=""
     if command -v jq >/dev/null 2>&1; then
@@ -584,20 +835,33 @@ PY
   fi
 
   for f in journal-pause.md journal-resume.md journal-status.md; do
-    [ -f "$HOME/.claude/commands/$f" ] && grep -q 'scribe' "$HOME/.claude/commands/$f" && rm -f "$HOME/.claude/commands/$f"
+    [ -f "$claude_dir/commands/$f" ] && grep -q 'scribe' "$claude_dir/commands/$f" && rm -f "$claude_dir/commands/$f"
   done
 
+  # Take the old PATH line out of each shell file. The new text is written
+  # through the file, so a ~/.zshrc that is a link to a dotfiles folder stays
+  # a link. awk is used rather than grep -v, which fails when it prints
+  # nothing (a file holding only the old line).
   for rc in "$HOME/.zshrc" "$HOME/.bashrc" "$HOME/.bash_profile"; do
     [ -f "$rc" ] || continue
-    if grep -q '\.scribe/bin' "$rc"; then
-      grep -v '\.scribe/bin' "$rc" | grep -vx '# scribe' >"$rc.tmp" && mv "$rc.tmp" "$rc"
+    grep -q '\.scribe/bin' "$rc" || continue
+    tmp="$(mktemp)" || { echo "vellum: could not make a temporary file, so $rc was left alone." >&2; failed=1; continue; }
+    if awk '!/\.scribe\/bin/ && $0 != "# scribe"' "$rc" >"${tmp:?}" && cat "$tmp" >"$rc" 2>/dev/null && ! grep -q '\.scribe/bin' "$rc"; then
       echo "Removed the old PATH line from $rc."
+    else
+      echo "vellum: could not remove the old PATH line from $rc. Delete the line that mentions .scribe/bin by hand." >&2
+      failed=1
     fi
+    rm -f "${tmp:?}"
   done
 
   rm -rf "${OLD_HOME:?}/bin" "${OLD_HOME:?}/hooks" "${OLD_HOME:?}/templates" \
          "${OLD_HOME:?}/uninstall.sh" "${OLD_HOME:?}/VERSION"
   rmdir "$OLD_HOME" 2>/dev/null || true
+  if [ $failed -eq 1 ]; then
+    echo "The rest of the old install is gone. Archived projects in $LIBRARY were kept."
+    return 1
+  fi
   echo "The old install is gone. Archived projects in $LIBRARY were kept."
 }
 
@@ -613,7 +877,7 @@ cmd_doctor() {
   if command -v claude >/dev/null 2>&1; then
     echo "  ok   Claude Code is installed"
   else
-    echo "  FAIL Claude Code is not on PATH, so archive summaries and the background helper cannot run"
+    echo "  FAIL Claude Code is not on PATH, so archive summaries and the curator cannot run"
     issues=$((issues + 1))
   fi
   if command -v git >/dev/null 2>&1; then
@@ -638,7 +902,29 @@ cmd_doctor() {
   else
     echo "  ok   no old install left over"
   fi
-  echo "  ok   background helper: $(config_get background on), model: $(config_get model default)"
+  echo "  ok   curator after each session: $(config_get background on), model: $(config_get model default)"
+
+  # The look and the status line, which install.sh sets up. Notes only: the
+  # journal and projects work without them.
+  local settings="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/settings.json"
+  if [ -f "$settings" ] && grep -qE '"theme"[[:space:]]*:[[:space:]]*"light-ansi"' "$settings"; then
+    echo "  ok   Claude Code uses the Terminal's colours (theme light-ansi)"
+  elif [ ! -f "$THEME_PREVIOUS" ] && [ -f "$THEME_INSTALLED" ]; then
+    # `vellum theme undo` put both looks back on purpose, so say nothing.
+    :
+  else
+    echo "  note Claude Code's theme is not light-ansi, so its colours may clash with the Vellum profile. Run /config in Claude Code, or install.sh again"
+  fi
+  if [ -f "$settings" ] && grep -qE '"command"[[:space:]]*:[[:space:]]*"[^"]*vellum statusline"' "$settings"; then
+    echo "  ok   the status line is Vellum's"
+  else
+    echo "  note the status line is not Vellum's, so it does not show each project's shape and port"
+  fi
+  if [ -f "$HOME/Library/Fonts/PaperMono-Regular.otf" ]; then
+    echo "  ok   Paper Mono is installed"
+  else
+    echo "  note Paper Mono is not installed. 'vellum theme' installs it"
+  fi
   echo
   if [ $issues -eq 0 ]; then
     echo "Everything looks healthy."

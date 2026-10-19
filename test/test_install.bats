@@ -17,12 +17,20 @@ setup() {
   cat > "$FAKEBIN/claude" <<'FAKE'
 #!/bin/bash
 echo "$*" >> "$TEST_HOME/claude.args"
-case "$1 $2" in
+case "$1 ${2:-}" in
+  "--version ") echo "${FAKE_CLAUDE_VERSION:-2.1.303} (Claude Code)" ;;
   "plugin list") cat "$TEST_HOME/plugins.json" 2>/dev/null || echo "[]" ;;
   "plugin install")
     dest="$CLAUDE_CONFIG_DIR/plugins/cache/vellum/vellum/0.10.0"
     mkdir -p "$dest" && cp -R "$VELLUM_REPO"/bin "$VELLUM_REPO"/lib "$VELLUM_REPO"/templates \
-      "$VELLUM_REPO"/theme "$VELLUM_REPO"/.claude-plugin "$dest"/ ;;
+      "$VELLUM_REPO"/theme "$VELLUM_REPO"/.claude-plugin "$dest"/
+    # Like the real one, it records the plugin in settings.json.
+    /usr/bin/python3 -I -c 'import json, os, sys
+p = sys.argv[1]
+d = json.load(open(p)) if os.path.exists(p) else {}
+d["enabledPlugins"] = {"vellum@vellum": True}
+f = open(p, "w"); json.dump(d, f, indent=2); f.write("\n")' "$CLAUDE_CONFIG_DIR/settings.json"
+    [ -z "${FAKE_LOCK_SETTINGS:-}" ] || chmod a-w "$CLAUDE_CONFIG_DIR" ;;
   "plugin uninstall") echo "$3" >> "$TEST_HOME/uninstalled" ;;
 esac
 FAKE
@@ -48,7 +56,10 @@ FAKE
   chmod +x "$FAKEBIN/claude" "$FAKEBIN/osascript" "$FAKEBIN/open"
   export VELLUM_REPO
 }
-teardown() { teardown_isolated_env; }
+teardown() {
+  chmod u+w "$CLAUDE_CONFIG_DIR" 2>/dev/null
+  teardown_isolated_env
+}
 
 settings() { cat "$CLAUDE_CONFIG_DIR/settings.json"; }
 
@@ -71,10 +82,77 @@ settings() { cat "$CLAUDE_CONFIG_DIR/settings.json"; }
 
 @test "install: keeps other settings and backs them up" {
   echo '{"model": "opus", "theme": "dark"}' > "$CLAUDE_CONFIG_DIR/settings.json"
-  bash "$VELLUM_REPO/install.sh"
+  run bash "$VELLUM_REPO/install.sh"
   settings | grep -q '"model": "opus"'
   settings | grep -q '"theme": "light-ansi"'
   grep -q '"theme": "dark"' "$CLAUDE_CONFIG_DIR/settings.json.before-vellum"
+  [[ "$output" == *"previous Claude Code settings are saved in"* ]] || false
+}
+
+@test "install: the backup is taken before the plugin changes settings.json" {
+  echo '{"theme": "dark"}' > "$CLAUDE_CONFIG_DIR/settings.json"
+  bash "$VELLUM_REPO/install.sh"
+  settings | grep -q enabledPlugins
+  refute grep -q enabledPlugins "$CLAUDE_CONFIG_DIR/settings.json.before-vellum"
+}
+
+@test "install: running it again keeps the first backup" {
+  echo '{"theme": "dark"}' > "$CLAUDE_CONFIG_DIR/settings.json"
+  bash "$VELLUM_REPO/install.sh"
+  bash "$VELLUM_REPO/install.sh"
+  grep -q '"theme": "dark"' "$CLAUDE_CONFIG_DIR/settings.json.before-vellum"
+  refute grep -q light-ansi "$CLAUDE_CONFIG_DIR/settings.json.before-vellum"
+}
+
+@test "install: with no settings before, the backup is empty and not mentioned" {
+  run bash "$VELLUM_REPO/install.sh"
+  [ "$status" -eq 0 ]
+  [ "$(cat "$CLAUDE_CONFIG_DIR/settings.json.before-vellum")" = "{}" ]
+  [[ "$output" != *"previous Claude Code settings"* ]] || false
+  run bash "$VELLUM_REPO/install.sh"
+  [ "$(cat "$CLAUDE_CONFIG_DIR/settings.json.before-vellum")" = "{}" ]
+}
+
+@test "install: stops when Claude Code is too old" {
+  export FAKE_CLAUDE_VERSION=2.1.200
+  run bash "$VELLUM_REPO/install.sh"
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"needs Claude Code 2.1.292 or later, and you have 2.1.200"* ]] || false
+  refute grep -q "plugin install" "$TEST_HOME/claude.args"
+}
+
+@test "install: accepts a newer Claude Code with a bigger middle number" {
+  export FAKE_CLAUDE_VERSION=2.10.0
+  run bash "$VELLUM_REPO/install.sh"
+  [ "$status" -eq 0 ]
+}
+
+@test "install: asks for the Command Line Tools when git is only a stub" {
+  printf '#!/bin/bash\necho "xcode-select: note: No developer tools were found" >&2\nexit 1\n' > "$FAKEBIN/git"
+  chmod +x "$FAKEBIN/git"
+  run bash "$VELLUM_REPO/install.sh"
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"xcode-select --install"* ]] || false
+  [[ "$output" != *"not valid JSON"* ]] || false
+}
+
+@test "install: piped into bash, a command reading stdin cannot swallow the rest" {
+  echo '{"theme": "dark"}' > "$CLAUDE_CONFIG_DIR/settings.json"
+  # pgrep runs near the end; this one reads everything left on stdin.
+  printf '#!/bin/bash\ncat >/dev/null\nexit 1\n' > "$FAKEBIN/pgrep"
+  chmod +x "$FAKEBIN/pgrep"
+  run bash -c "bash < '$VELLUM_REPO/install.sh'"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"previous Claude Code settings are saved in"* ]] || false
+  settings | grep -q '"theme": "light-ansi"'
+}
+
+@test "install: does not claim success when settings.json cannot be written" {
+  export FAKE_LOCK_SETTINGS=1
+  run bash "$VELLUM_REPO/install.sh"
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"could not be updated"* ]] || false
+  [[ "$output" != *"Claude Code uses the Terminal's colours"* ]] || false
 }
 
 @test "install: replaces Scribe's status line but not someone's own" {
@@ -116,7 +194,7 @@ JSON
   run bash "$VELLUM_REPO/install.sh"
   [ "$status" -ne 0 ]
   [[ "$output" == *"not valid JSON"* ]] || false
-  [ ! -e "$TEST_HOME/claude.args" ]
+  refute grep -q "plugin install" "$TEST_HOME/claude.args"
 }
 
 @test "install: greets the person in the new Vellum window" {

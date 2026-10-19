@@ -19,3 +19,11 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+---
+
+Fonts
+
+The Paper Mono font files in theme/fonts are not covered by the MIT License
+above. They are © 2025 The Paper Mono Project Authors, licensed under the SIL
+Open Font License, Version 1.1. See theme/fonts/OFL.txt.

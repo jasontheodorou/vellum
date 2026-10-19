@@ -33,3 +33,12 @@ teardown() { teardown_isolated_env; }
   run "$VELLUM_BIN" doctor
   [[ "${lines[0]}" == *"$version"* ]] || false
 }
+
+@test "doctor: finds the old install in a Claude folder set by CLAUDE_CONFIG_DIR" {
+  install_fake_claude
+  mkdir -p "$HOME/other-claude"
+  echo '{"hooks":{"Stop":[{"hooks":[{"type":"command","command":"/x/.scribe/hooks/stop.sh"}]}]}}' > "$HOME/other-claude/settings.json"
+  CLAUDE_CONFIG_DIR="$HOME/other-claude" run "$VELLUM_BIN" doctor
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"remove-old-install"* ]] || false
+}

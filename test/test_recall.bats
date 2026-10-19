@@ -115,3 +115,63 @@ teardown() { teardown_isolated_env; }
   run "$VELLUM_BIN" recall beds
   [[ "$output" != *"Embeds"* ]] || false
 }
+
+@test "recall: finds words that start with punctuation" {
+  fake_conversation home e5 2026-10-14 "$P/garden" "Secrets file" \
+    user "Keep the .env file out of git, and the plan costs \$5 a month" \
+    assistant "Sure. The total is (a+b) times two."
+  run "$VELLUM_BIN" recall .env
+  [[ "$output" == *"Secrets file"* ]] || false
+  run "$VELLUM_BIN" recall '$5'
+  [[ "$output" == *"Secrets file"* ]] || false
+  run "$VELLUM_BIN" recall '(a+b)'
+  [[ "$output" == *"Secrets file"* ]] || false
+  # A dot is a dot, not any character.
+  run "$VELLUM_BIN" recall xenv
+  [[ "$output" != *"Secrets file"* ]] || false
+}
+
+@test "recall: does not copy conversations from a paused project" {
+  mkdir -p "$P/garden/.vellum"
+  touch "$P/garden/.vellum/.paused"
+  run "$VELLUM_BIN" recall clay
+  [[ "$output" != *"Garden soil"* ]] || false
+  [ ! -f "$HOME/.vellum/recall/b2.txt" ]
+  [ -f "$HOME/.vellum/recall/a1.txt" ]
+  # Resuming lets it be copied next time.
+  rm "$P/garden/.vellum/.paused"
+  run "$VELLUM_BIN" recall clay
+  [[ "$output" == *"Garden soil"* ]] || false
+}
+
+@test "recall: does not copy conversations from a paused kit project or a subfolder of one" {
+  mkdir -p "$P/garden/design-journal" "$P/garden/src"
+  touch "$P/garden/design-journal/.paused"
+  fake_conversation home f6 2026-10-15 "$P/garden/src" "Garden code" user "clay pots in the code" assistant "ok"
+  run "$VELLUM_BIN" recall clay
+  [[ "$output" != *"Garden soil"* ]] || false
+  [[ "$output" != *"Garden code"* ]] || false
+}
+
+@test "recall: does not copy conversations from a declined project" {
+  mkdir -p "$HOME/.vellum"
+  echo "$P/patio" > "$HOME/.vellum/declined"
+  touch "$P/garden/.vellum-declined"
+  run "$VELLUM_BIN" recall french drain
+  [[ "$output" != *"Patio drainage"* ]] || false
+  [ ! -f "$HOME/.vellum/recall/a1.txt" ]
+  run "$VELLUM_BIN" recall clay
+  [[ "$output" != *"Garden soil"* ]] || false
+  [ ! -f "$HOME/.vellum/recall/b2.txt" ]
+}
+
+@test "recall: stops when its time is up and says how many are left" {
+  VELLUM_RECALL_BUDGET=0 run "$VELLUM_BIN" recall clay
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"3 are still to read"* ]] || false
+  [[ "$output" == *"Run the same search again to carry on"* ]] || false
+  [ ! -f "$HOME/.vellum/recall/b2.txt" ]
+  run "$VELLUM_BIN" recall clay
+  [[ "$output" == *"Garden soil"* ]] || false
+  [[ "$output" != *"still to read"* ]] || false
+}

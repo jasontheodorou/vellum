@@ -28,13 +28,11 @@
 }
 
 .page { position: relative; padding-block: var(--gap-section); }
-/* The spacing overlay sits in the page but takes no part in its spacing */
-.page > .spacing-overlay { margin-top: 0; }
 .page > .stage-wrap { margin-top: var(--gap-hero); }
 .page > * + * { margin-top: var(--gap-section); }
 
 /* Text boxes run from cap height to baseline, so each gap is the gap the eye sees */
-.wordmark, .tagline, .feature h3, .feature p, .install h3, .github { text-box: trim-both cap alphabetic; }
+.wordmark, .tagline, .feature h2, .feature p, .install h2, .github { text-box: trim-both cap alphabetic; }
 
 /* ---------- Wordmark ---------- */
 
@@ -59,9 +57,9 @@
   letter-spacing: -0.01em;
   color: var(--promise-ink);
 }
-.feature h3 { margin: var(--gap-inner) 0 0; font-size: clamp(1.25rem, 1.05rem + 0.45vw, 1.5rem); font-weight: 500; line-height: 1.25; color: #2b2a26; }
+.feature h2 { margin: var(--gap-inner) 0 0; font-size: clamp(1.25rem, 1.05rem + 0.45vw, 1.5rem); font-weight: 500; line-height: 1.25; color: #2b2a26; }
 .feature p { margin: var(--gap-inner) 0 0; font-size: clamp(1.0625rem, 0.95rem + 0.3vw, 1.25rem); line-height: 1.6; color: #5b5a52; }
-.install h3 { margin: 0; font-size: clamp(1.25rem, 1.05rem + 0.45vw, 1.5rem); font-weight: 500; line-height: 1.25; color: #2b2a26; }
+.install h2 { margin: 0; font-size: clamp(1.25rem, 1.05rem + 0.45vw, 1.5rem); font-weight: 500; line-height: 1.25; color: #2b2a26; }
 .install__box { margin-top: var(--gap-inner); }
 .github { margin-top: var(--gap-inner); font-size: 1.125rem; }
 .cursor {
@@ -165,7 +163,7 @@
 .win__you { margin-top: 0.6em !important; }
 /* Claude's replies hang from a ● like they do in Claude Code */
 .win__recap, .win__claude { display: grid; grid-template-columns: 2ch 1fr; max-width: 46em; }
-.win__recap::before, .win__claude::before { content: "●"; color: var(--accent); }
+.win__recap::before, .win__claude::before { content: "●"; content: "●" / ""; color: var(--accent); }
 .win__status { margin-top: auto !important; white-space: pre; }
 .win__shape { color: var(--accent); }
 .win__live { color: var(--v-green); }

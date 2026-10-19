@@ -1,5 +1,8 @@
 /* Temporary spacing overlay: dashed boxes over each named gap, with its ID and size. */
 
+/* The overlay sits in the page but takes no part in its spacing */
+.page > .spacing-overlay { margin-top: 0; }
+
 .spacing-overlay {
   position: absolute;
   inset: 0 auto auto 0;

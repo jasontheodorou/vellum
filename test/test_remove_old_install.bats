@@ -38,7 +38,7 @@ teardown() { teardown_isolated_env; }
 
 @test "remove-old-install works with python3 when jq is missing" {
   mkdir -p "$TEST_HOME/nojq"
-  for t in bash sh grep sed awk cat cp mv rm mkdir head tail tr dirname basename python3; do
+  for t in bash sh grep sed awk cat cp mv rm mkdir mktemp head tail tr dirname basename python3; do
     p=$(command -v $t) && ln -sf "$p" "$TEST_HOME/nojq/$t"
   done
   PATH="$TEST_HOME/nojq" run "$VELLUM_BIN" remove-old-install
@@ -72,4 +72,43 @@ teardown() { teardown_isolated_env; }
   "$VELLUM_BIN" remove-old-install
   run "$VELLUM_BIN" remove-old-install
   [ "$status" -eq 0 ]
+}
+
+@test "remove-old-install writes through a linked ~/.zshrc and keeps the link" {
+  mkdir -p "$HOME/dotfiles"
+  mv "$HOME/.zshrc" "$HOME/dotfiles/zshrc"
+  ln -s "$HOME/dotfiles/zshrc" "$HOME/.zshrc"
+  run "$VELLUM_BIN" remove-old-install
+  [ "$status" -eq 0 ]
+  [ -L "$HOME/.zshrc" ]
+  refute grep -q ".scribe/bin" "$HOME/dotfiles/zshrc"
+  grep -q "export FOO=1" "$HOME/dotfiles/zshrc"
+}
+
+@test "remove-old-install empties a shell file that held only the old line" {
+  printf 'export PATH="$HOME/.scribe/bin:$PATH"\n' > "$HOME/.bashrc"
+  run "$VELLUM_BIN" remove-old-install
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Removed the old PATH line from $HOME/.bashrc"* ]] || false
+  [ ! -s "$HOME/.bashrc" ]
+  [ -z "$(ls "$HOME" | grep '\.tmp$')" ]
+}
+
+@test "remove-old-install says so when it cannot change a shell file" {
+  chmod 444 "$HOME/.zshrc"
+  run "$VELLUM_BIN" remove-old-install
+  chmod 644 "$HOME/.zshrc"
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"could not remove the old PATH line"* ]] || false
+  [[ "$output" != *"Removed the old PATH line from $HOME/.zshrc"* ]] || false
+}
+
+@test "remove-old-install uses CLAUDE_CONFIG_DIR" {
+  mkdir -p "$TEST_HOME/cfg/commands"
+  mv "$HOME/.claude/settings.json" "$TEST_HOME/cfg/settings.json"
+  echo "Run scribe resume" > "$TEST_HOME/cfg/commands/journal-resume.md"
+  CLAUDE_CONFIG_DIR="$TEST_HOME/cfg" run "$VELLUM_BIN" remove-old-install
+  [ "$status" -eq 0 ]
+  refute grep -q ".scribe/hooks" "$TEST_HOME/cfg/settings.json"
+  [ ! -f "$TEST_HOME/cfg/commands/journal-resume.md" ]
 }

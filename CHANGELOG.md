@@ -9,15 +9,37 @@ Scribe is now called Vellum, and sets up Apple's Terminal as well as Claude Code
 ### Added
 
 - `install.sh`: one Terminal command installs the Terminal theme, the plugin and the status line, sets Claude Code to "Light mode (ANSI colours only)" so it draws with Vellum's colours, removes Scribe (the plugin and the old curl install), and ends with a welcome screen. It backs up settings.json and is safe to run again.
-- `vellum theme`: installs the Paper Mono font and the Vellum Terminal profile (Man Page brightened: sunlight yellow, charcoal ink, Paper Mono 18 point, all 16 colours readable), and makes it the default for new and startup windows. `vellum theme undo` goes back to the previous profile.
+- `vellum theme`: installs the Paper Mono font and the Vellum Terminal profile (Man Page brightened: sunny yellow, charcoal ink, Paper Mono 18 point, all 16 colours readable), and makes it the default for new and startup windows. `vellum theme undo` goes back to the previous profile.
 - Theme updates: when a new Vellum profile ships, the next session offers to apply it. `vellum theme` replaces the old profile, keeps it the default and refreshes windows already using it; `vellum theme skip` says no to that update.
 
 ### Changed
 
 - Renamed from Scribe to Vellum: the plugin, the `vellum` command and the `/vellum:` slash commands.
 - Data moves from `~/.scribe` to `~/.vellum` the first time Vellum runs, and each project's `.scribe/` journal moves to `.vellum/` when the project is next used. A "no" given to Scribe is still respected.
+- The license in `plugin.json` is now "MIT AND OFL-1.1", because the Paper Mono font is under the SIL Open Font License. `LICENSE` and the README say so.
+- `PRIVACY.md` now says what goes to Anthropic, every file Vellum keeps, everything the installer changes, and that condensed sessions keep up to 200 characters of each command Claude ran.
 
-## 0.9.0 beta (unreleased)
+### Fixed
+
+- The installer keeps the first backup of Claude Code's settings. Running it again used to replace the backup with Vellum's own settings. The backup is now taken before the plugin is installed, so it really is how the settings were before.
+- The installer cannot be cut short when it is piped from `curl` into bash. It used to stop part way and still report success if a command it ran read the rest of the script.
+- On a Mac without Apple's Command Line Tools, the installer now asks you to run `xcode-select --install`. It used to say the settings file was not valid JSON.
+- The installer checks that Claude Code is 2.1.292 or later, and no longer reports success when it could not update the settings file.
+- `vellum theme undo` also puts back Claude Code's theme, and says how to remove the status line.
+- Session start always fits within Claude Code's 10,000 character limit, so a long journal no longer stops Claude getting its context.
+- Session end hands all the work to a curator that runs on its own after Claude Code closes. Sessions that end together wait in a queue, so none is lost.
+- Several windows open at once can no longer damage the project list.
+- Publishing to GitHub now fails clearly when something goes wrong, in place of claiming success.
+- "Stop X" stops only the project's own server, not another program using the same port.
+- Pausing a project also stops its conversations being copied for recall, both at session end and when you search. Projects where you said no to a journal are skipped too.
+- `vellum undo` puts back only the files the curator changed, and refuses if they were edited since, so notes written after the curator's run are kept. `vellum undo --earlier` goes back one more run.
+- `vellum off --yes` refuses to delete a journal that is tracked by git. `--delete-tracked` deletes it anyway.
+- The first recall search stops after 60 seconds and carries on next time, in place of making you wait for your whole history.
+- A home folder that is itself a git repository (such as a dotfiles repository), and git worktrees, are handled properly.
+- Project and folder names with accented letters work.
+- Removing the old Scribe keeps a `~/.zshrc` that is a link to another file as a link.
+
+## 0.9.0 beta (not released separately)
 
 Scribe (formerly Terminal Scribe) is now a Claude Code plugin.
 
