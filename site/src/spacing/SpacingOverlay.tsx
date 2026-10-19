@@ -1,4 +1,4 @@
-// Ported from katsura's spacing overlay (foundations/[chapter]/components).
+// A design aid that labels the gaps between parts of the page, for development only.
 
 import { useEffect, useState, type RefObject } from 'react'
 

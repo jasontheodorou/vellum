@@ -32,7 +32,7 @@ reg() { cat "$HOME/.vellum/projects.tsv"; }
 
 @test "new: continues after the project kit's ports" {
   mkdir -p "$P"
-  echo '{"next": 47025, "projects": {"katsura": 47019, "portfolio": 47024}}' > "$P/.ports.json"
+  echo '{"next": 47025, "projects": {"allotment": 47019, "portfolio": 47024}}' > "$P/.ports.json"
   "$VELLUM_BIN" new fresh >/dev/null
   reg | grep -q "^fresh	.*	47025	"
 }
@@ -178,32 +178,32 @@ reg() { cat "$HOME/.vellum/projects.tsv"; }
  "hooks": {"SessionStart": [{"hooks": [{"type": "command", "command": "$P/kitproj/.claude/hooks/session-start.sh"}]}],
            "Stop": [{"hooks": [{"type": "command", "command": "$P/kitproj/design-journal/.journal-hook.sh"}]}]}}
 JSON
-  touch "$HOME/Library/LaunchAgents/com.jasont.design-journal-weekly-kitproj.plist"
+  touch "$HOME/Library/LaunchAgents/com.example.design-journal-weekly-kitproj.plist"
   run "$VELLUM_BIN" adopt "$P/kitproj"
   [ "$status" -eq 0 ]
   refute grep -q "journal-hook" "$P/kitproj/.claude/settings.json"
   refute grep -q "session-start.sh" "$P/kitproj/.claude/settings.json"
   grep -q "Bash(npm \*)" "$P/kitproj/.claude/settings.json"
   [ -f "$P/kitproj/.claude/settings.json.kit-backup" ]
-  [ ! -f "$HOME/Library/LaunchAgents/com.jasont.design-journal-weekly-kitproj.plist" ]
-  [ -f "$HOME/.vellum/retired/com.jasont.design-journal-weekly-kitproj.plist" ]
+  [ ! -f "$HOME/Library/LaunchAgents/com.example.design-journal-weekly-kitproj.plist" ]
+  [ -f "$HOME/.vellum/retired/com.example.design-journal-weekly-kitproj.plist" ]
 }
 
 @test "adopt: takes the port the kit gave the project" {
-  mkdir -p "$P/katsura"
-  echo '{"next": 3025, "projects": {"katsura": 3019}}' > "$P/.ports.json"
-  "$VELLUM_BIN" adopt "$P/katsura" >/dev/null
-  reg | grep -q "^katsura	.*	3019	"
+  mkdir -p "$P/allotment"
+  echo '{"next": 3025, "projects": {"allotment": 3019}}' > "$P/.ports.json"
+  "$VELLUM_BIN" adopt "$P/allotment" >/dev/null
+  reg | grep -q "^allotment	.*	3019	"
 }
 
 @test "import-kit: adds every kit project that still exists" {
-  mkdir -p "$P/katsura" "$P/sanctum"
-  echo '{"next": 3025, "projects": {"katsura": 3019, "sanctum": 3022, "deleted": 3001}}' > "$P/.ports.json"
+  mkdir -p "$P/allotment" "$P/recipes"
+  echo '{"next": 3025, "projects": {"allotment": 3019, "recipes": 3022, "deleted": 3001}}' > "$P/.ports.json"
   run "$VELLUM_BIN" import-kit
   [ "$status" -eq 0 ]
-  [[ "$output" == *"Added 2 project(s) from the project kit: katsura, sanctum."* ]] || false
-  reg | grep -q "^katsura	$P/katsura	3019	active"
-  reg | grep -q "^sanctum	$P/sanctum	3022	active"
+  [[ "$output" == *"Added 2 project(s) from the project kit: allotment, recipes."* ]] || false
+  reg | grep -q "^allotment	$P/allotment	3019	active"
+  reg | grep -q "^recipes	$P/recipes	3022	active"
   refute grep -q "^deleted" "$HOME/.vellum/projects.tsv"
   run "$VELLUM_BIN" import-kit
   [[ "$output" == *"Added 0 project(s)"* ]] || false
@@ -322,7 +322,7 @@ FAKE
 
 @test "session-start: offers to import the kit when the list is empty" {
   mkdir -p "$P"
-  echo '{"projects": {"katsura": 3019}}' > "$P/.ports.json"
+  echo '{"projects": {"allotment": 3019}}' > "$P/.ports.json"
   run bash -c "printf '{\"cwd\":\"%s\",\"session_id\":\"s\"}' '$HOME' | '$VELLUM_BIN' hook session-start"
   [[ "$output" == *"import-kit"* ]] || false
 }

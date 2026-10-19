@@ -44,7 +44,6 @@ Delete `~/.vellum/recall/` at any time. It is rebuilt the next time you search.
 | A log of what Vellum did | `~/.vellum/vellum.log` |
 | Which Terminal profile was the default before Vellum, and which version of the Vellum profile is installed | `~/.vellum/theme-*` |
 | The helper the installer adds, which runs the newest installed copy of the plugin | `~/.vellum/bin/vellum` |
-| The weekly jobs of projects from the earlier Claude Project Kit, once switched over | `~/.vellum/retired/` |
 
 ## What goes to Anthropic
 
@@ -81,9 +80,8 @@ The installer changes these things:
 - **Claude Code's settings.** It copies Vellum's theme to `~/.claude/themes/vellum.json`, sets `theme` to it (`custom:vellum`), adds a `statusLine`, and turns off Claude Code's own recap (`awaySummaryEnabled`) unless you chose that setting already, in `~/.claude/settings.json`. It keeps a copy of the file as it was first, in `~/.claude/settings.json.before-vellum`, and never replaces that copy.
 - **Fonts.** It copies Paper Mono into `~/Library/Fonts`.
 - **Terminal.** It adds the Vellum profile and makes it the default for new windows.
-- **The old Scribe.** If the first Scribe is still installed, it removes Scribe's hooks from `~/.claude/settings.json` (keeping a backup) and the line Scribe added to `~/.zshrc`, `~/.bashrc` or `~/.bash_profile`.
 
-`vellum theme undo` puts back the Terminal profile, Claude Code's theme and Claude Code's recap. [The README](README.md#uninstall) explains how to remove the rest.
+`vellum theme undo` puts back the Terminal profile, Claude Code's theme and Claude Code's recap. [Deleting everything](#deleting-everything) explains how to remove the rest.
 
 While Claude Code runs, Vellum sets `PORT` to the project's port for the commands Claude runs, so servers start on the right port. It does not change your shell.
 
@@ -91,7 +89,6 @@ Otherwise, Vellum changes files outside a journal only when you ask:
 
 - "Start a new project" creates the folder, a README, a `.gitignore` and a git repository.
 - "Rename" moves the project's folder.
-- "Add this folder to my projects", in a project made by the earlier Claude Project Kit, removes the kit's two hooks from that project's `.claude/settings.json` (keeping `settings.json.kit-backup`) and moves its weekly job to `~/.vellum/retired/`.
 - "Stop X" stops the program serving that project's port.
 - "Put this on GitHub" creates a repository on your GitHub account and pushes to it.
 
@@ -112,4 +109,6 @@ Otherwise, Vellum changes files outside a journal only when you ask:
 1. Run `~/.vellum/bin/vellum theme undo`, then type `/plugin uninstall vellum` in Claude Code.
 2. Delete the `.vellum/` folder in each project.
 3. Delete the `~/.vellum/` folder.
-4. Remove the rest as [the README](README.md#uninstall) explains: the status line, the Terminal profile and Paper Mono.
+4. Delete the `statusLine` entry from `~/.claude/settings.json`, or put back the whole file from `~/.claude/settings.json.before-vellum`.
+5. In Terminal, open Settings, then Profiles, choose Vellum and click the minus button. Choose another profile as the default first.
+6. Open Font Book, find Paper Mono, and remove it.

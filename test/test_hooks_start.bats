@@ -104,18 +104,18 @@ big_journal() {
 }
 
 @test "kit: one kit project waiting is called one project" {
-  mkdir -p "$P/katsura"
-  echo '{"projects": {"katsura": 3019}}' > "$P/.ports.json"
+  mkdir -p "$P/allotment"
+  echo '{"projects": {"allotment": 3019}}' > "$P/.ports.json"
   out="$(start_in "$HOME")"
   [[ "$out" == *"has 1 project in $P that is not on the project list yet"* ]] || false
 }
 
 @test "kit: no import offer for the kit project this session is adding" {
-  mkdir -p "$P/katsura/design-journal"
-  echo '{"projects": {"katsura": 3019}}' > "$P/.ports.json"
-  out="$(start_in "$P/katsura")"
+  mkdir -p "$P/allotment/design-journal"
+  echo '{"projects": {"allotment": 3019}}' > "$P/.ports.json"
+  out="$(start_in "$P/allotment")"
   [[ "$out" != *"not on the project list yet"* ]] || false
-  grep -q "^katsura	$P/katsura	3019" "$HOME/.vellum/projects.tsv"
+  grep -q "^allotment	$P/allotment	3019" "$HOME/.vellum/projects.tsv"
 }
 
 @test "paused: Claude still gets a short recap and may read the journal" {
