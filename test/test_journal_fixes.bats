@@ -72,7 +72,7 @@ teardown() { teardown_isolated_env; }
   install_fake_claude
   run "$VELLUM_BIN" doctor
   [ "$status" -eq 0 ]
-  [[ "$output" == *"note Claude Code's theme is not light-ansi"* ]] || false
+  [[ "$output" == *"note Claude Code's theme is not Vellum's"* ]] || false
   [[ "$output" == *"note the status line is not Vellum's"* ]] || false
   [[ "$output" == *"note Paper Mono is not installed"* ]] || false
   [[ "$output" == *"curator after each session"* ]] || false
@@ -82,10 +82,10 @@ teardown() { teardown_isolated_env; }
   install_fake_claude
   mkdir -p "$TEST_HOME/cfg" "$HOME/Library/Fonts"
   touch "$HOME/Library/Fonts/PaperMono-Regular.otf"
-  printf '{\n  "theme": "light-ansi",\n  "statusLine": {"type": "command", "command": "%s/.vellum/bin/vellum statusline"}\n}\n' "$HOME" >"$TEST_HOME/cfg/settings.json"
+  printf '{\n  "theme": "custom:vellum",\n  "statusLine": {"type": "command", "command": "%s/.vellum/bin/vellum statusline"}\n}\n' "$HOME" >"$TEST_HOME/cfg/settings.json"
   CLAUDE_CONFIG_DIR="$TEST_HOME/cfg" run "$VELLUM_BIN" doctor
   [ "$status" -eq 0 ]
-  [[ "$output" == *"ok   Claude Code uses the Terminal's colours"* ]] || false
+  [[ "$output" == *"ok   Claude Code uses Vellum's theme"* ]] || false
   [[ "$output" == *"ok   the status line is Vellum's"* ]] || false
   [[ "$output" == *"ok   Paper Mono is installed"* ]] || false
 }

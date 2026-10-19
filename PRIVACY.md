@@ -78,7 +78,7 @@ When you ask for an archive, Claude reads the journal to write a summary. That r
 
 The installer changes these things:
 
-- **Claude Code's settings.** It sets `theme` to "Light mode (ANSI colours only)", adds a `statusLine`, and turns off Claude Code's own recap (`awaySummaryEnabled`) unless you chose that setting already, in `~/.claude/settings.json`. It keeps a copy of the file as it was first, in `~/.claude/settings.json.before-vellum`, and never replaces that copy.
+- **Claude Code's settings.** It copies Vellum's theme to `~/.claude/themes/vellum.json`, sets `theme` to it (`custom:vellum`), adds a `statusLine`, and turns off Claude Code's own recap (`awaySummaryEnabled`) unless you chose that setting already, in `~/.claude/settings.json`. It keeps a copy of the file as it was first, in `~/.claude/settings.json.before-vellum`, and never replaces that copy.
 - **Fonts.** It copies Paper Mono into `~/Library/Fonts`.
 - **Terminal.** It adds the Vellum profile and makes it the default for new windows.
 - **The old Scribe.** If the first Scribe is still installed, it removes Scribe's hooks from `~/.claude/settings.json` (keeping a backup) and the line Scribe added to `~/.zshrc`, `~/.bashrc` or `~/.bash_profile`.

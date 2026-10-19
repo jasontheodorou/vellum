@@ -24,7 +24,7 @@ var COLOURS = {
   ANSIBlueColor: '#3455C5',
   ANSIMagentaColor: '#B53668',
   ANSICyanColor: '#21717A',
-  ANSIWhiteColor: '#FFFADB',
+  ANSIWhiteColor: '#C6EDE3',
   ANSIBrightBlackColor: '#66655A',
   ANSIBrightRedColor: '#B04A1E',
   ANSIBrightGreenColor: '#2B6A3D',

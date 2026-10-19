@@ -11,10 +11,12 @@ Scribe is now called Vellum, and sets up Apple's Terminal as well as Claude Code
 - `install.sh`: one Terminal command installs the Terminal theme, the plugin and the status line, sets Claude Code to "Light mode (ANSI colours only)" so it draws with Vellum's colours, removes Scribe (the plugin and the old curl install), and ends with a welcome screen. It backs up settings.json and is safe to run again.
 - `vellum theme`: installs the Paper Mono font and the Vellum Terminal profile (Man Page brightened: sunny yellow, charcoal ink, Paper Mono 18 point, all 16 colours readable), and makes it the default for new and startup windows. `vellum theme undo` goes back to the previous profile.
 - Return recap: after an hour or more away, your next prompt shows the one-line "Last time… Next…" recap, once. `vellum config recap-after MINUTES|off` changes or stops it. The installer turns off Claude Code's own recap, which appears after every five minutes away, and `vellum theme undo` turns it back on.
+- Vellum's Claude Code theme: "Light mode (ANSI colours only)" with faint blue `#A9C2EC` lines above and below the input. `vellum theme` copies it to `~/.claude/themes/vellum.json`, and moves Claude Code onto it from plain "Light mode (ANSI colours only)". Those lines share Terminal's white with the message backgrounds, so the Terminal profile alone could not colour just them.
 - Theme updates: when a new Vellum profile ships, the next session offers to apply it. `vellum theme` replaces the old profile, keeps it the default and refreshes windows already using it; `vellum theme skip` says no to that update.
 
 ### Changed
 
+- Terminal's white, behind your messages in Claude Code, is now mint `#C6EDE3` in place of cream `#FFFADB`.
 - Renamed from Scribe to Vellum: the plugin, the `vellum` command and the `/vellum:` slash commands.
 - Data moves from `~/.scribe` to `~/.vellum` the first time Vellum runs, and each project's `.scribe/` journal moves to `.vellum/` when the project is next used. A "no" given to Scribe is still respected.
 - The license in `plugin.json` is now "MIT AND OFL-1.1", because the Paper Mono font is under the SIL Open Font License. `LICENSE` and the README say so.

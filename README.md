@@ -33,7 +33,7 @@ It does four things, then shows a welcome screen:
 
 1. Adds the Vellum profile to Terminal, with the Paper Mono font, and makes it the default.
 2. Installs the Claude Code plugin: the journal, the project list, shapes and ports.
-3. Sets Claude Code to "Light mode (ANSI colours only)", so Claude draws with Vellum's colours and its text is always readable on the yellow paper.
+3. Sets Claude Code to Vellum's theme: "Light mode (ANSI colours only)", so Claude draws with Vellum's colours and its text is always readable on the yellow paper, with faint blue lines above and below where you type.
 4. Turns on the status line, and removes Scribe, Vellum's earlier name, if you had it. Your projects, journals and archives are kept.
 
 Your Claude Code settings are backed up first, to `~/.claude/settings.json.before-vellum`. Running the installer again is safe, and it never replaces that first backup. The first time, a new Terminal window opens in Vellum. Type `claude` in it and say what you want.
@@ -76,7 +76,7 @@ Vellum is a brighter take on Terminal's Man Page profile: sunny yellow paper, ch
 | Cursor | `#3455C5` cobalt blue |
 | Accents | `#B63E32` red, `#347348` green, `#876000` amber, `#3455C5` cobalt blue, `#B53668` raspberry, `#21717A` teal |
 | Bright accents | `#B04A1E` Claude orange, `#2B6A3D` green, `#7A5600` amber, `#2C47AE` blue, `#9E2D5B` berry, `#1B6670` teal, `#66655A` grey |
-| Light colours | `#FFFADB` cream and `#FFFFFF` white, for Claude's message backgrounds |
+| Light colours | `#C6EDE3` mint and `#FFFFFF` white, for Claude's message backgrounds |
 
 The font is [Paper Mono](https://github.com/paper-design/paper-mono) at 18 point. Vellum sets all 16 terminal colours, because Claude Code's ANSI-only theme uses every one of them. Every colour used for text has at least 4.5 to 1 contrast against the background; white and bright white stay light, because Claude uses them for message backgrounds. The profile is for Apple's own Terminal app.
 
@@ -192,7 +192,7 @@ Start Claude in your home folder (just open Terminal and type `claude`). Claude 
 Your projects, journals and library are not deleted, because they are your work. Some other things also stay until you remove them:
 
 - **Claude Code's recap.** `vellum theme undo` turns Claude Code's own recap back on. If you skipped step 1, type `/config` in Claude Code and turn recaps on.
-- **Claude Code's theme.** If you skipped step 1, Claude Code stays on "Light mode (ANSI colours only)". Type `/config` in Claude Code to choose another theme.
+- **Claude Code's theme.** If you skipped step 1, Claude Code stays on Vellum's theme. Type `/config` in Claude Code to choose another, then delete `~/.claude/themes/vellum.json`.
 - **The status line.** Delete the `statusLine` entry from `~/.claude/settings.json`. Or put back the whole file from `~/.claude/settings.json.before-vellum`, which is how it was before you installed Vellum. That also removes any settings you changed since.
 - **The Vellum Terminal profile.** In Terminal, open Settings, then Profiles, choose Vellum and click the minus button. Choose another profile as the default first.
 - **The Paper Mono font.** Open Font Book, find Paper Mono, and remove it.

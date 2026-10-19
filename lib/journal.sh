@@ -907,13 +907,13 @@ cmd_doctor() {
   # The look and the status line, which install.sh sets up. Notes only: the
   # journal and projects work without them.
   local settings="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/settings.json"
-  if [ -f "$settings" ] && grep -qE '"theme"[[:space:]]*:[[:space:]]*"light-ansi"' "$settings"; then
-    echo "  ok   Claude Code uses the Terminal's colours (theme light-ansi)"
+  if [ -f "$settings" ] && grep -qE '"theme"[[:space:]]*:[[:space:]]*"custom:vellum"' "$settings"; then
+    echo "  ok   Claude Code uses Vellum's theme"
   elif [ ! -f "$THEME_PREVIOUS" ] && [ -f "$THEME_INSTALLED" ]; then
     # `vellum theme undo` put both looks back on purpose, so say nothing.
     :
   else
-    echo "  note Claude Code's theme is not light-ansi, so its colours may clash with the Vellum profile. Run /config in Claude Code, or install.sh again"
+    echo "  note Claude Code's theme is not Vellum's, so its colours may clash with the Vellum profile. Run 'vellum theme'"
   fi
   if [ -f "$settings" ] && grep -qE '"command"[[:space:]]*:[[:space:]]*"[^"]*vellum statusline"' "$settings"; then
     echo "  ok   the status line is Vellum's"

@@ -21,9 +21,10 @@ VELLUM_HOME="${VELLUM_HOME:-$HOME/.vellum}"
 SETTINGS="$CLAUDE_DIR/settings.json"
 BACKUP="$SETTINGS.before-vellum"
 SHIM="$VELLUM_HOME/bin/vellum"
-# Claude Code's "Light mode (ANSI colours only)": it draws with the Terminal
-# profile's 16 colours, which Vellum makes readable on its yellow paper.
-CLAUDE_THEME="light-ansi"
+# Vellum's Claude Code theme, which `vellum theme` installs: "Light mode (ANSI
+# colours only)", drawn with the Terminal profile's 16 colours, plus faint
+# blue lines above and below the input.
+CLAUDE_THEME="custom:vellum"
 # The oldest Claude Code that Vellum is tested with.
 MIN_CLAUDE="2.1.292"
 
@@ -175,8 +176,9 @@ EOF
       step "Removed the old curl-installed Scribe. Archived projects were kept."
   fi
 
-  # 4. The Terminal look: Paper Mono and the Vellum profile, made the default.
-  theme_out="$("$SHIM" theme </dev/null 2>&1)" || fail "the Terminal profile could not be set up. $theme_out"
+  # 4. The look: Paper Mono and the Vellum profile, made Terminal's default,
+  #    and Vellum's Claude Code theme copied into Claude Code's themes folder.
+  theme_out="$("$SHIM" theme </dev/null 2>&1)" || fail "the Vellum look could not be set up. $theme_out"
   step "Vellum is Terminal's default profile, with the Paper Mono font."
 
   # 5. Claude Code's colours and the status line.

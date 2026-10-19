@@ -170,3 +170,24 @@ teardown() { teardown_isolated_env; }
   grep -qx PaperMono-Regular "$TERMINAL/font_name"
   grep -qx 18 "$TERMINAL/font_size"
 }
+
+@test "theme installs Vellum's Claude Code theme and moves off plain light-ansi" {
+  mkdir -p "$HOME/.claude"
+  echo '{"theme": "light-ansi", "model": "opus"}' > "$HOME/.claude/settings.json"
+  run "$VELLUM_BIN" theme
+  [ "$status" -eq 0 ]
+  cmp "$VELLUM_REPO/theme/claude-code.json" "$HOME/.claude/themes/vellum.json"
+  /usr/bin/python3 -c 'import json, sys; d = json.load(open(sys.argv[1])); assert d["theme"] == "custom:vellum" and d["model"] == "opus"' "$HOME/.claude/settings.json"
+}
+
+@test "theme leaves a Claude Code theme the person chose" {
+  mkdir -p "$HOME/.claude"
+  echo '{"theme": "dark"}' > "$HOME/.claude/settings.json"
+  "$VELLUM_BIN" theme
+  grep -q '"theme": "dark"' "$HOME/.claude/settings.json"
+  [ -f "$HOME/.claude/themes/vellum.json" ]
+}
+
+@test "the Claude Code theme file is valid and builds on light-ansi" {
+  /usr/bin/python3 -c 'import json, sys; d = json.load(open(sys.argv[1])); assert d["base"] == "light-ansi" and d["overrides"]["promptBorder"].startswith("#")' "$VELLUM_REPO/theme/claude-code.json"
+}

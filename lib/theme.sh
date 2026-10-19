@@ -13,6 +13,11 @@
 THEME_DIR="$PLUGIN_ROOT/theme"
 THEME_NAME="Vellum"
 THEME_FILE="$THEME_DIR/$THEME_NAME.terminal"
+# Claude Code's own theme: "Light mode (ANSI colours only)" with faint blue
+# lines above and below the input. Those lines share Terminal's white with
+# the message backgrounds, so the profile alone cannot colour just them.
+CLAUDE_THEME_FILE="$THEME_DIR/claude-code.json"
+CLAUDE_THEME="custom:vellum"
 THEME_PREVIOUS="$VELLUM_HOME/theme-previous"
 # The fingerprint of the profile last added to Terminal, and of an update the
 # person said no to.
@@ -30,7 +35,32 @@ has_terminal_profile() {
 }
 
 theme_fingerprint() {
-  shasum -a 256 "$THEME_FILE" | cut -d ' ' -f1
+  cat "$THEME_FILE" "$CLAUDE_THEME_FILE" | shasum -a 256 | cut -d ' ' -f1
+}
+
+# Copy Vellum's Claude Code theme into Claude Code's themes folder, and switch
+# to it when Claude Code is on the plain ANSI theme an earlier Vellum set.
+install_claude_theme() {
+  local dir="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+  mkdir -p "$dir/themes" && cp "$CLAUDE_THEME_FILE" "$dir/themes/vellum.json" || return 1
+  [ -f "$dir/settings.json" ] || return 0
+  /usr/bin/python3 -I - "$dir/settings.json" "$CLAUDE_THEME" <<'PY'
+import json, os, sys
+path, theme = sys.argv[1:3]
+try:
+    data = json.load(open(path))
+except ValueError:
+    sys.exit(0)
+if not isinstance(data, dict) or data.get("theme") != "light-ansi":
+    sys.exit(0)
+data["theme"] = theme
+tmp = path + ".tmp"
+with open(tmp, "w") as f:
+    json.dump(data, f, indent=2)
+    f.write("\n")
+os.replace(tmp, path)
+print("Claude Code now uses Vellum's theme. Restart Claude Code to see it.")
+PY
 }
 
 # True when the person installed the theme and a newer one has shipped since,
@@ -166,6 +196,7 @@ cmd_theme() {
     echo "Updated the Vellum profile in Terminal, including windows already open in it."
   fi
   fix_profile_font || die "Terminal did not take the Paper Mono font. Restart Terminal, then run 'vellum theme' again."
+  install_claude_theme || die "could not copy Vellum's Claude Code theme into ${CLAUDE_CONFIG_DIR:-$HOME/.claude}/themes"
   mkdir -p "$VELLUM_HOME"
   theme_fingerprint >"$THEME_INSTALLED"
   rm -f "$THEME_SKIPPED"
@@ -213,7 +244,8 @@ claude_theme_undo() {
   /usr/bin/python3 -I - "$settings" "$backup" <<'PY'
 import json, os, sys
 path, backup = sys.argv[1:3]
-VELLUM_THEME = "light-ansi"
+# light-ansi is what Vellum set before it had a Claude Code theme of its own.
+VELLUM_THEMES = ("custom:vellum", "light-ansi")
 try:
     data = json.load(open(path))
     before = json.load(open(backup))
@@ -222,9 +254,9 @@ except (ValueError, AssertionError, OSError):
     print("Claude Code's theme was not changed back, because a settings file could not be read. To change it yourself, type /config in Claude Code and choose a theme.")
     sys.exit(1)
 changed = False
-if data.get("theme") != VELLUM_THEME:
+if data.get("theme") not in VELLUM_THEMES:
     print("Claude Code's theme is no longer Vellum's, so it was left alone.")
-elif before.get("theme") == VELLUM_THEME:
+elif before.get("theme") in VELLUM_THEMES:
     print("Claude Code's theme was already Light mode (ANSI colours only) before Vellum, so it was left alone.")
 else:
     if "theme" in before:

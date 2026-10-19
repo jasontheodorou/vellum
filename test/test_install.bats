@@ -72,7 +72,7 @@ settings() { cat "$CLAUDE_CONFIG_DIR/settings.json"; }
   grep -q "plugin install vellum --marketplace $VELLUM_REPO" "$TEST_HOME/claude.args"
   grep -qx Vellum "$TERMINAL/default"
   [ -f "$HOME/Library/Fonts/PaperMono-Regular.otf" ]
-  settings | grep -q '"theme": "light-ansi"'
+  settings | grep -q '"theme": "custom:vellum"'
   settings | grep -q "\"command\": \"$HOME/.vellum/bin/vellum statusline\""
   [ -x "$HOME/.vellum/bin/vellum" ]
 }
@@ -87,7 +87,7 @@ settings() { cat "$CLAUDE_CONFIG_DIR/settings.json"; }
   echo '{"model": "opus", "theme": "dark"}' > "$CLAUDE_CONFIG_DIR/settings.json"
   run bash "$VELLUM_REPO/install.sh"
   settings | grep -q '"model": "opus"'
-  settings | grep -q '"theme": "light-ansi"'
+  settings | grep -q '"theme": "custom:vellum"'
   grep -q '"theme": "dark"' "$CLAUDE_CONFIG_DIR/settings.json.before-vellum"
   [[ "$output" == *"previous Claude Code settings are saved in"* ]] || false
 }
@@ -104,7 +104,7 @@ settings() { cat "$CLAUDE_CONFIG_DIR/settings.json"; }
   bash "$VELLUM_REPO/install.sh"
   bash "$VELLUM_REPO/install.sh"
   grep -q '"theme": "dark"' "$CLAUDE_CONFIG_DIR/settings.json.before-vellum"
-  refute grep -q light-ansi "$CLAUDE_CONFIG_DIR/settings.json.before-vellum"
+  refute grep -q custom:vellum "$CLAUDE_CONFIG_DIR/settings.json.before-vellum"
 }
 
 @test "install: with no settings before, the backup is empty and not mentioned" {
@@ -147,15 +147,16 @@ settings() { cat "$CLAUDE_CONFIG_DIR/settings.json"; }
   run bash -c "bash < '$VELLUM_REPO/install.sh'"
   [ "$status" -eq 0 ]
   [[ "$output" == *"previous Claude Code settings are saved in"* ]] || false
-  settings | grep -q '"theme": "light-ansi"'
+  settings | grep -q '"theme": "custom:vellum"'
 }
 
 @test "install: does not claim success when settings.json cannot be written" {
   export FAKE_LOCK_SETTINGS=1
   run bash "$VELLUM_REPO/install.sh"
   [ "$status" -ne 0 ]
-  [[ "$output" == *"could not be updated"* ]] || false
-  [[ "$output" != *"Claude Code uses the Terminal's colours"* ]] || false
+  # The locked folder stops the theme copy before settings.json is reached.
+  [[ "$output" == *"could not copy Vellum's Claude Code theme"* ]] || false
+  [[ "$output" != *"Vellum is installed"* ]] || false
 }
 
 @test "install: replaces Scribe's status line but not someone's own" {

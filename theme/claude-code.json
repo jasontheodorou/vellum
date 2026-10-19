@@ -1,0 +1,8 @@
+{
+  "name": "Vellum",
+  "base": "light-ansi",
+  "overrides": {
+    "promptBorder": "#A9C2EC",
+    "promptBorderShimmer": "#D5E5F5"
+  }
+}
