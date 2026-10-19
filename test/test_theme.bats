@@ -17,6 +17,9 @@ setup() {
 script="$2"
 echo "$script" >> "$TERMINAL/log"
 case "$script" in
+  *"set font name of settings set"*) echo "${script##* to \"}" | tr -d '"' > "$TERMINAL/font_name" ;;
+  *"set font size of settings set"*) echo "${script##* to }" > "$TERMINAL/font_size" ;;
+  *"to (font name of"*) echo "$(cat "$TERMINAL/font_name" 2>/dev/null || echo .AppleSystemUIFont) $(cat "$TERMINAL/font_size" 2>/dev/null || echo 11)" ;;
   *"delete settings set"*)
     name="${script#*settings set \"}"; name="${name%\"}"
     grep -vxF "$name" "$TERMINAL/profiles" > "$TERMINAL/p.tmp"; mv "$TERMINAL/p.tmp" "$TERMINAL/profiles" ;;
@@ -159,4 +162,11 @@ teardown() { teardown_isolated_env; }
   [ "$status" -eq 0 ]
   refute grep -q awaySummaryEnabled "$HOME/.claude/settings.json"
   grep -q "recap after five minutes away is back on" <<<"$output"
+}
+
+@test "theme sets Paper Mono 18 when Terminal fell back to the system font" {
+  run "$VELLUM_BIN" theme
+  [ "$status" -eq 0 ]
+  grep -qx PaperMono-Regular "$TERMINAL/font_name"
+  grep -qx 18 "$TERMINAL/font_size"
 }

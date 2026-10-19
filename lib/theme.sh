@@ -51,6 +51,27 @@ install_fonts() {
   done
 }
 
+# Terminal reads the font when it adds the profile. A font copied a moment
+# earlier is often not registered yet, so Terminal falls back to the system
+# font at 11pt. Set the font again once Terminal can see it.
+PROFILE_FONT="PaperMono-Regular"
+PROFILE_FONT_SIZE=18
+
+profile_font() {
+  terminal_script "(font name of settings set \"$THEME_NAME\") & \" \" & (font size of settings set \"$THEME_NAME\")"
+}
+
+fix_profile_font() {
+  local _
+  for _ in $(seq 1 50); do
+    terminal_script "set font name of settings set \"$THEME_NAME\" to \"$PROFILE_FONT\"" >/dev/null
+    terminal_script "set font size of settings set \"$THEME_NAME\" to $PROFILE_FONT_SIZE" >/dev/null
+    [ "$(profile_font)" = "$PROFILE_FONT $PROFILE_FONT_SIZE" ] && return 0
+    sleep 0.1
+  done
+  return 1
+}
+
 window_ids() {
   terminal_script "id of every window" | tr ',' '\n' | tr -d ' '
 }
@@ -144,6 +165,7 @@ cmd_theme() {
     replace_profile || die "Terminal did not take the new Vellum profile. Open $THEME_FILE by hand."
     echo "Updated the Vellum profile in Terminal, including windows already open in it."
   fi
+  fix_profile_font || die "Terminal did not take the Paper Mono font. Restart Terminal, then run 'vellum theme' again."
   mkdir -p "$VELLUM_HOME"
   theme_fingerprint >"$THEME_INSTALLED"
   rm -f "$THEME_SKIPPED"

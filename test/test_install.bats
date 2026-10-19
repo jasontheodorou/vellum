@@ -40,6 +40,9 @@ FAKE
 script="$2"
 name="${script#*settings set \"}"; name="${name%\"}"
 case "$script" in
+  *"set font name of settings set"*) echo "${script##* to \"}" | tr -d '"' > "$TERMINAL/font_name" ;;
+  *"set font size of settings set"*) echo "${script##* to }" > "$TERMINAL/font_size" ;;
+  *"to (font name of"*) echo "$(cat "$TERMINAL/font_name" 2>/dev/null || echo .AppleSystemUIFont) $(cat "$TERMINAL/font_size" 2>/dev/null || echo 11)" ;;
   *"name of default settings"*) cat "$TERMINAL/default" ;;
   *"exists settings set"*) grep -qxF "$name" "$TERMINAL/profiles" && echo true || echo false ;;
   *"set default settings to"*) echo "$name" > "$TERMINAL/default" ;;

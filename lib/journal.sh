@@ -920,10 +920,12 @@ cmd_doctor() {
   else
     echo "  note the status line is not Vellum's, so it does not show each project's shape and port"
   fi
-  if [ -f "$HOME/Library/Fonts/PaperMono-Regular.otf" ]; then
-    echo "  ok   Paper Mono is installed"
-  else
+  if [ ! -f "$HOME/Library/Fonts/PaperMono-Regular.otf" ]; then
     echo "  note Paper Mono is not installed. 'vellum theme' installs it"
+  elif has_terminal_profile "$THEME_NAME" && [ "$(profile_font)" != "$PROFILE_FONT $PROFILE_FONT_SIZE" ]; then
+    echo "  note the Vellum profile uses $(profile_font), not Paper Mono $PROFILE_FONT_SIZE. 'vellum theme' fixes it"
+  else
+    echo "  ok   Paper Mono is installed"
   fi
   echo
   if [ $issues -eq 0 ]; then
