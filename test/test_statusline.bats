@@ -88,3 +88,16 @@ line_for() {
   out=$(printf '{"cwd":"%s"}' "$P/garden" | NO_COLOR=1 "$VELLUM_BIN" statusline)
   [ "$out" = "● garden" ]
 }
+
+@test "statusline: shows a server as soon as it starts" {
+  "$VELLUM_BIN" new garden >/dev/null
+  port="$("$VELLUM_BIN" list | grep -o 'port [0-9]*' | head -1 | cut -d' ' -f2)"
+  [ -n "$port" ]
+  [[ "$(line_for "$P/garden")" != *"live on"* ]] || false
+  python3 -m http.server "$port" --bind 127.0.0.1 >/dev/null 2>&1 &
+  server=$!
+  for _ in $(seq 1 50); do lsof -nP -iTCP:"$port" -sTCP:LISTEN -t >/dev/null 2>&1 && break; sleep 0.1; done
+  out="$(line_for "$P/garden")"
+  kill "$server"
+  [[ "$out" == *"live on :$port"* ]] || false
+}

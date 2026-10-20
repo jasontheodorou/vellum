@@ -961,18 +961,19 @@ paint() {
   fi
 }
 
-# Is something serving this port? Cached for 15 seconds, because the status
-# line redraws often and lsof is slow.
+# Is something serving this port? A running server is remembered for 15
+# seconds, because the status line redraws often and lsof is slow. A stopped
+# one is checked again on every redraw, so a server that has just started
+# shows straight away.
 port_running_cached() {
   local port="$1" cache="$VELLUM_HOME/.cache/port-$1" now
   now=$(date +%s)
   mkdir -p "$VELLUM_HOME/.cache" 2>/dev/null || return 1
   if [ -f "$cache" ] && [ $((now - $(stat -f %m "$cache" 2>/dev/null || echo 0))) -lt 15 ]; then
-    [ "$(cat "$cache")" = "1" ]
-    return
+    return 0
   fi
-  if port_in_use "$port"; then echo 1 >"$cache"; return 0; fi
-  echo 0 >"$cache"
+  if port_in_use "$port"; then : >"$cache"; return 0; fi
+  rm -f "$cache"
   return 1
 }
 
